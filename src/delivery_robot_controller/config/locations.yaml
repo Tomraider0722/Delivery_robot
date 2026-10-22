@@ -1,0 +1,16 @@
+# Named places in the map frame (metres, yaw in radians).
+# Coordinates were checked in simulation: the robot reached each of these
+# goals on the saved warehouse map (maps/warehouse_map.yaml).
+locations:
+  dock:
+    x: 0.0
+    y: 0.0
+    yaw: 0.0
+  room1:
+    x: -4.3
+    y: 3.0
+    yaw: 0.0
+  room2:
+    x: 4.3
+    y: -3.0
+    yaw: 0.0
