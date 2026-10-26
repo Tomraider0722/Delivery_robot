@@ -1,9 +1,16 @@
-"""Deliver to a named location and return to the dock.
+"""Deliver to one or more named locations and return to the dock.
 
 Usage:
     ros2 run delivery_robot_controller deliver room2
+    ros2 run delivery_robot_controller deliver room1 room2 --confirm
     ros2 run delivery_robot_controller deliver --list
     ros2 run delivery_robot_controller deliver room1 --wait 5 --no-return
+
+Several destinations are visited in the order given. With --confirm the
+robot waits at each stop until someone presses Enter in this terminal or
+calls the service /delivery/confirm (std_srvs/Trigger), then moves on; it
+gives up waiting after --confirm-timeout seconds. A stop that cannot be
+reached is skipped and reported at the end.
 
 Needs the simulation, localization and Nav2 running (see CLAUDE.md).
 Locations come from config/locations.yaml (or --locations FILE).
@@ -12,6 +19,7 @@ Locations come from config/locations.yaml (or --locations FILE).
 import argparse
 import math
 import os
+import select
 import sys
 
 from ament_index_python.packages import get_package_share_directory
@@ -21,6 +29,7 @@ import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.utilities import remove_ros_args
+from std_srvs.srv import Trigger
 import yaml
 
 # action_msgs/GoalStatus values
@@ -41,6 +50,15 @@ class Deliver(Node):
         super().__init__('deliver')
         self.client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.last_log = 0.0
+        self.confirmed = False
+        self.create_service(Trigger, '/delivery/confirm', self.on_confirm)
+
+    def on_confirm(self, request, response):
+        """Service callback: the cargo has been taken."""
+        self.confirmed = True
+        response.success = True
+        response.message = 'Delivery confirmed'
+        return response
 
     def go_to(self, name, loc):
         """Drive to a location; return True when Nav2 reports success."""
@@ -92,6 +110,23 @@ class Deliver(Node):
         while self.get_clock().now().nanoseconds / 1e9 < end:
             rclpy.spin_once(self, timeout_sec=0.2)
 
+    def wait_for_confirmation(self, timeout):
+        """Wait for Enter or /delivery/confirm; return True if confirmed."""
+        self.confirmed = False
+        self.get_logger().info(
+            'Waiting for confirmation: press Enter or call '
+            '/delivery/confirm (timeout %.0f s)' % timeout)
+        end = self.get_clock().now().nanoseconds / 1e9 + timeout
+        while not self.confirmed:
+            if self.get_clock().now().nanoseconds / 1e9 >= end:
+                return False
+            rclpy.spin_once(self, timeout_sec=0.2)
+            if sys.stdin.isatty() and select.select(
+                    [sys.stdin], [], [], 0)[0]:
+                sys.stdin.readline()
+                self.confirmed = True
+        return True
+
 
 def main(args=None):
     """Run a delivery from the command line."""
@@ -99,12 +134,18 @@ def main(args=None):
         get_package_share_directory('delivery_robot_controller'),
         'config', 'locations.yaml')
 
-    parser = argparse.ArgumentParser(description='Deliver to a named location')
-    parser.add_argument('destination', nargs='?', help='location name')
+    parser = argparse.ArgumentParser(
+        description='Deliver to one or more named locations')
+    parser.add_argument('destinations', nargs='*', help='location names')
     parser.add_argument('--list', action='store_true',
                         help='list known locations and exit')
     parser.add_argument('--wait', type=float, default=3.0,
-                        help='seconds to wait at the destination (default 3)')
+                        help='seconds to wait at each stop (default 3)')
+    parser.add_argument('--confirm', action='store_true',
+                        help='wait for Enter or /delivery/confirm at each '
+                             'stop instead of a fixed time')
+    parser.add_argument('--confirm-timeout', type=float, default=120.0,
+                        help='seconds to wait for confirmation (default 120)')
     parser.add_argument('--no-return', action='store_true',
                         help='stay at the destination instead of returning')
     parser.add_argument('--home', default='dock',
@@ -117,12 +158,17 @@ def main(args=None):
 
     if opts.list:
         for name, loc in locations.items():
-            print(f'{name}: x={loc["x"]}, y={loc["y"]}, yaw={loc.get("yaw", 0.0)}')
+            print(f'{name}: x={loc["x"]}, y={loc["y"]}, '
+                  f'yaw={loc.get("yaw", 0.0)}')
         return 0
 
-    if opts.destination not in locations:
+    if not opts.destinations:
+        print('Give at least one destination, or use --list')
+        return 2
+    unknown = [d for d in opts.destinations if d not in locations]
+    if unknown:
         known = ', '.join(locations)
-        print(f'Unknown destination "{opts.destination}". Known: {known}')
+        print(f'Unknown destination "{unknown[0]}". Known: {known}')
         return 2
     if not opts.no_return and opts.home not in locations:
         print(f'Unknown home location "{opts.home}"')
@@ -130,29 +176,43 @@ def main(args=None):
 
     rclpy.init(args=args)
     node = Deliver()
+    log = node.get_logger()
     code = 1
 
     try:
-        node.get_logger().info('Waiting for Nav2...')
+        log.info('Waiting for Nav2...')
         if not node.client.wait_for_server(timeout_sec=30.0):
-            node.get_logger().error(
+            log.error(
                 'navigate_to_pose is not available. Start the simulation, '
                 'localization and navigation first.')
-        elif node.go_to(opts.destination, locations[opts.destination]):
-            node.get_logger().info(
-                f'Delivered to {opts.destination}; waiting {opts.wait:.0f} s')
-            node.wait(opts.wait)
-            if opts.no_return:
-                code = 0
-            elif node.go_to(opts.home, locations[opts.home]):
-                node.get_logger().info('Delivery complete')
-                code = 0
+            return code
+
+        delivered, failed = [], []
+        for name in opts.destinations:
+            if not node.go_to(name, locations[name]):
+                failed.append(name)
+                continue
+            delivered.append(name)
+            if opts.confirm:
+                if node.wait_for_confirmation(opts.confirm_timeout):
+                    log.info(f'Confirmed at {name}')
+                else:
+                    log.warn(f'No confirmation at {name}; moving on')
             else:
-                node.get_logger().error('Delivered, but could not return')
-        else:
-            node.get_logger().error('Delivery failed')
+                log.info(f'Arrived at {name}; waiting {opts.wait:.0f} s')
+                node.wait(opts.wait)
+
+        returned = True
+        if not opts.no_return:
+            returned = node.go_to(opts.home, locations[opts.home])
+            if not returned:
+                log.error('Could not return to the dock')
+
+        log.info(f'Summary: delivered {delivered or "nothing"}, '
+                 f'failed {failed or "none"}')
+        code = 0 if delivered and not failed and returned else 1
     except KeyboardInterrupt:
-        node.get_logger().info('Interrupted')
+        log.info('Interrupted')
     finally:
         node.destroy_node()
         if rclpy.ok():
