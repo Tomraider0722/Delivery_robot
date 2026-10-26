@@ -29,6 +29,7 @@ setup(
     entry_points={
         'console_scripts': [
             'deliver = delivery_robot_controller.deliver:main',
+            'delivery_panel = delivery_robot_controller.delivery_panel:main',
         ],
     },
 )

@@ -16,6 +16,7 @@ from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
 )
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 # Variables set by the VS Code snap that make Gazebo / RViz load snap
@@ -50,6 +51,7 @@ def generate_launch_description():
     mode = LaunchConfiguration('mode')
     rviz = LaunchConfiguration('rviz')
     speed_slider = LaunchConfiguration('speed_slider')
+    delivery_panel = LaunchConfiguration('delivery_panel')
     teleop = LaunchConfiguration('teleop')
 
     args = [
@@ -62,6 +64,9 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'speed_slider', default_value='true',
             description='Open the speed slider with RViz'),
+        DeclareLaunchArgument(
+            'delivery_panel', default_value='true',
+            description='Open the Deliver window (pick stops, press Deliver)'),
         DeclareLaunchArgument(
             'teleop', default_value='false',
             description='Also open the keyboard teleop terminal'),
@@ -127,6 +132,12 @@ def generate_launch_description():
                     launch_arguments={
                         'speed_slider': speed_slider}.items(),
                     condition=IfCondition(rviz)),
+                Node(
+                    package='delivery_robot_controller',
+                    executable='delivery_panel',
+                    name='delivery_panel',
+                    output='screen',
+                    condition=IfCondition(delivery_panel)),
             ]),
     ]
 

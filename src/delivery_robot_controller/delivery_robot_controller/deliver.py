@@ -46,12 +46,24 @@ def load_locations(path):
 class Deliver(Node):
     """Send NavigateToPose goals for a delivery run."""
 
-    def __init__(self):
-        super().__init__('deliver')
+    def __init__(self, **kwargs):
+        super().__init__('deliver', **kwargs)
         self.client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.last_log = 0.0
         self.confirmed = False
+        self.cancel_requested = False
+        self.on_status = None
         self.create_service(Trigger, '/delivery/confirm', self.on_confirm)
+
+    def say(self, text):
+        """Log a status line and pass it to the panel, if there is one."""
+        self.get_logger().info(text)
+        if self.on_status:
+            self.on_status(text)
+
+    def cancel(self):
+        """Stop the mission in progress (called from another thread)."""
+        self.cancel_requested = True
 
     def on_confirm(self, request, response):
         """Service callback: the cargo has been taken."""
@@ -72,8 +84,7 @@ class Deliver(Node):
         goal.pose.pose.orientation.z = math.sin(yaw / 2.0)
         goal.pose.pose.orientation.w = math.cos(yaw / 2.0)
 
-        self.get_logger().info(
-            f'Going to {name} ({loc["x"]:.1f}, {loc["y"]:.1f})')
+        self.say(f'Going to {name}')
 
         send = self.client.send_goal_async(goal, feedback_callback=self.feedback)
         rclpy.spin_until_future_complete(self, send)
@@ -83,12 +94,19 @@ class Deliver(Node):
             return False
 
         result = handle.get_result_async()
-        rclpy.spin_until_future_complete(self, result)
+        while not result.done():
+            rclpy.spin_once(self, timeout_sec=0.2)
+            if self.cancel_requested:
+                handle.cancel_goal_async()
         status = result.result().status
 
         if status == STATUS_SUCCEEDED:
             self.get_logger().info(f'Arrived at {name}')
             return True
+
+        if self.cancel_requested:
+            self.get_logger().info('Cancelled')
+            return False
 
         self.get_logger().error(
             f'Could not reach {name} (status {status}: '
@@ -107,18 +125,19 @@ class Deliver(Node):
     def wait(self, seconds):
         """Wait (e.g. while the cargo is unloaded), still spinning ROS."""
         end = self.get_clock().now().nanoseconds / 1e9 + seconds
-        while self.get_clock().now().nanoseconds / 1e9 < end:
+        while (self.get_clock().now().nanoseconds / 1e9 < end
+               and not self.cancel_requested):
             rclpy.spin_once(self, timeout_sec=0.2)
 
     def wait_for_confirmation(self, timeout):
         """Wait for Enter or /delivery/confirm; return True if confirmed."""
         self.confirmed = False
-        self.get_logger().info(
-            'Waiting for confirmation: press Enter or call '
-            '/delivery/confirm (timeout %.0f s)' % timeout)
+        self.say('Waiting for confirmation (Enter, /delivery/confirm or '
+                 'the Delivered button)')
         end = self.get_clock().now().nanoseconds / 1e9 + timeout
         while not self.confirmed:
-            if self.get_clock().now().nanoseconds / 1e9 >= end:
+            if (self.cancel_requested
+                    or self.get_clock().now().nanoseconds / 1e9 >= end):
                 return False
             rclpy.spin_once(self, timeout_sec=0.2)
             if sys.stdin.isatty() and select.select(
@@ -126,6 +145,36 @@ class Deliver(Node):
                 sys.stdin.readline()
                 self.confirmed = True
         return True
+
+    def run_mission(self, names, locations, home, no_return, confirm,
+                    wait, confirm_timeout):
+        """Visit the stops in order; return (delivered, failed, returned)."""
+        self.cancel_requested = False
+        delivered, failed = [], []
+        for name in names:
+            if self.cancel_requested:
+                break
+            if not self.go_to(name, locations[name]):
+                if not self.cancel_requested:
+                    failed.append(name)
+                continue
+            delivered.append(name)
+            if confirm:
+                if self.wait_for_confirmation(confirm_timeout):
+                    self.say(f'Confirmed at {name}')
+                else:
+                    self.get_logger().warn(
+                        f'No confirmation at {name}; moving on')
+            else:
+                self.say(f'Arrived at {name}; waiting {wait:.0f} s')
+                self.wait(wait)
+
+        returned = True
+        if not no_return and not self.cancel_requested:
+            returned = self.go_to(home, locations[home])
+            if not returned and not self.cancel_requested:
+                self.get_logger().error('Could not return to the dock')
+        return delivered, failed, returned
 
 
 def main(args=None):
@@ -187,27 +236,9 @@ def main(args=None):
                 'localization and navigation first.')
             return code
 
-        delivered, failed = [], []
-        for name in opts.destinations:
-            if not node.go_to(name, locations[name]):
-                failed.append(name)
-                continue
-            delivered.append(name)
-            if opts.confirm:
-                if node.wait_for_confirmation(opts.confirm_timeout):
-                    log.info(f'Confirmed at {name}')
-                else:
-                    log.warn(f'No confirmation at {name}; moving on')
-            else:
-                log.info(f'Arrived at {name}; waiting {opts.wait:.0f} s')
-                node.wait(opts.wait)
-
-        returned = True
-        if not opts.no_return:
-            returned = node.go_to(opts.home, locations[opts.home])
-            if not returned:
-                log.error('Could not return to the dock')
-
+        delivered, failed, returned = node.run_mission(
+            opts.destinations, locations, opts.home, opts.no_return,
+            opts.confirm, opts.wait, opts.confirm_timeout)
         log.info(f'Summary: delivered {delivered or "nothing"}, '
                  f'failed {failed or "none"}')
         code = 0 if delivered and not failed and returned else 1
