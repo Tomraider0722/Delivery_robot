@@ -8,9 +8,11 @@ A 4-wheel skid-steer delivery robot that maps a simulated warehouse, localizes i
 
 ## Demo
 
-Overhead view of a full delivery in the simulated warehouse (dock, room 1, room 2, back to the dock, 2x speed). Click the picture to play the video.
+Overhead view of a full delivery in the simulated warehouse: dock, room 1, room 2, back to the dock (2x speed).
 
-[![Delivery demo](docs/delivery_demo_poster.png)](docs/delivery_demo.mp4)
+![Delivery demo](docs/delivery_demo.gif)
+
+Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; download it if your browser or player does not open it).
 
 ## Features
 
