@@ -6,6 +6,12 @@ A 4-wheel skid-steer delivery robot that maps a simulated warehouse, localizes i
 |---|---|
 | ![Robot front](docs/robot_look_front.png) | ![Robot rear](docs/robot_look_rear.png) |
 
+## Demo
+
+Overhead view of a full delivery in the simulated warehouse (dock, room 1, room 2, back to the dock, 2x speed). Click the picture to play the video.
+
+[![Delivery demo](docs/delivery_demo_poster.png)](docs/delivery_demo.mp4)
+
 ## Features
 
 - **SLAM mapping** with SLAM Toolbox, driven by hand (teleop) or automatically.
