@@ -8,6 +8,8 @@
   <license>TODO: License declaration</license>
 
   <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>rtabmap_odom</exec_depend>
+  <exec_depend>rtabmap_slam</exec_depend>
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>nav2_controller</exec_depend>
   <exec_depend>nav2_planner</exec_depend>

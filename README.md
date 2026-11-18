@@ -20,6 +20,7 @@ Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; downlo
 - **Automatic exploration** (`nav2_exploration`): finds frontiers in the map and drives to them with Nav2, including into the two rooms through ~0.9 m doorways.
 - **Localization** on the saved map with AMCL, and **navigation** with Nav2 (Regulated Pure Pursuit controller, NavFn planner) tuned for tight spaces.
 - **Odometry calibration** for the skid-steer base: `wheel_separation_multiplier: 1.28` corrects a ~28% yaw over-report caused by wheel slip, which otherwise makes SLAM drift and produce ghost maps.
+- **Visual SLAM** (RTAB-Map, RGB-D camera only) next to LiDAR SLAM, with a measured comparison against Gazebo ground truth.
 - **Multi-stop deliveries** (`deliver`): visit named places in order, wait for confirmation at each, skip unreachable stops, return to the dock.
 - **Operator tools**: a Delivery button window, a speed-limit slider, and a route tool to click several stops in RViz.
 - **One-command bringup** that starts the whole system in order and waits for each stage to be ready.
@@ -36,6 +37,35 @@ Nodes and topics of the running system (generated from the live ROS graph by `do
 
 ![ROS graph](docs/ros_graph.png)
 
+## LiDAR SLAM vs visual SLAM
+
+Both ran on the same drive (dock, room 1, room 2, dock; 21.6 m) and were scored against Gazebo's ground-truth pose:
+
+| Source | Mean error (m) | RMSE (m) | Max error (m) | Final error (m) |
+|---|---|---|---|---|
+| Wheel odometry only | 0.60 | 0.68 | 1.29 | 1.29 |
+| LiDAR SLAM (slam_toolbox) | 0.05 | 0.07 | 0.21 | 0.01 |
+| Visual SLAM (RTAB-Map, camera only) | 0.17 | 0.21 | 0.40 | 0.31 |
+
+![LiDAR vs visual SLAM](docs/slam_comparison/comparison.png)
+
+- LiDAR SLAM is the most accurate and produces a complete, clean 2D map. Visual SLAM from the depth camera alone stays within about 0.2 m on average, but its map only contains what the camera saw on the route (walls within ~5 m), so it is sparser.
+- The wheel odometry alone drifts by more than a metre over this route even after calibration.
+- The visual SLAM needs a textured scene. In the original plain-coloured warehouse the visual odometry was lost almost immediately, so the walls and floor now carry generated textures (`tools/make_world_textures.py`; a different random texture on each wall, so walls cannot be confused with each other). This changes how the world looks, not its geometry, and the lidar scan is unchanged.
+- Caveats: one run per method, in simulation, in a world with synthetic textures. The camera streams are noise-free. Treat the numbers as a comparison of the two methods in this setup, not as general benchmarks.
+
+Reproduce it (simulation, Nav2 and LiDAR SLAM running with `bringup.launch.py mode:=slam`):
+
+```bash
+ros2 launch delivery_robot_navigation visual_slam.launch.py        # camera-only visual SLAM (/vo, /vslam/map)
+python3 tools/slam_compare_logger.py --out run/poses.json --stop-file run/stop.flag &
+ros2 run delivery_robot_controller deliver room1 room2 --wait 3 --ros-args -p use_sim_time:=true
+touch run/stop.flag      # then save both maps with map_saver_cli (-t /map and -t /vslam/map)
+python3 tools/slam_compare_report.py run docs/slam_comparison
+```
+
+`visual_slam.launch.py guess_frame_id:=odom` also feeds the wheel odometry to the visual odometry as a motion hint.
+
 ## Packages
 
 | Package | Purpose |
@@ -43,7 +73,7 @@ Nodes and topics of the running system (generated from the live ROS graph by `do
 | `delivery_robot_description` | URDF/Xacro model (robot, lidar, camera, `ros2_control`) and controller config |
 | `delivery_robot_gazebo` | Warehouse world, sensor bridges, Gazebo launch files |
 | `delivery_robot_teleop` | Keyboard teleop and the `Twist` to `TwistStamped` converter |
-| `delivery_robot_navigation` | SLAM, localization, Nav2 config and launch files, RViz view, speed slider, route tool, saved map |
+| `delivery_robot_navigation` | LiDAR and visual SLAM, localization, Nav2 config and launch files, RViz view, speed slider, route tool, saved map |
 | `delivery_robot_exploration` | `nav2_exploration` (frontier exploration with Nav2) and the older reactive `autonomous_exploration` |
 | `delivery_robot_controller` | `deliver` mission command, `delivery_panel` window, named locations |
 | `delivery_robot_bringup` | `bringup.launch.py`, the one-command launch |
@@ -52,7 +82,7 @@ Nodes and topics of the running system (generated from the live ROS graph by `do
 ## Requirements
 
 - Ubuntu 24.04 with ROS 2 Jazzy and Gazebo (`gz sim`)
-- ROS packages: Nav2 (`nav2_bringup` and the planner, controller, AMCL, map server and waypoint follower packages), `slam_toolbox`, `ros_gz_sim`, `ros_gz_bridge`, `gz_ros2_control`, `ros2_controllers`, `teleop_twist_keyboard`, `rviz2`
+- ROS packages: Nav2 (`nav2_bringup` and the planner, controller, AMCL, map server and waypoint follower packages), `slam_toolbox`, `rtabmap_ros` (`ros-jazzy-rtabmap-ros`), `ros_gz_sim`, `ros_gz_bridge`, `gz_ros2_control`, `ros2_controllers`, `teleop_twist_keyboard`, `rviz2`
 - `python3-tk` (slider and delivery windows), `xterm` (keyboard teleop terminal), `python3-numpy`
 
 ## Build
@@ -114,7 +144,6 @@ Manual mapping works with `teleop:=true`; save the result with `nav2_map_server`
 
 ## Roadmap
 
-- Visual SLAM with an RGB-D camera (RTAB-Map) and a comparison with LiDAR SLAM
 - Camera-based cargo detection (perception package)
 - Order queue, battery and docking
 - Automatic slowing near doorways
