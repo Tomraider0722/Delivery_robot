@@ -241,6 +241,14 @@
     </geometry>
     <material name="chassis_dark"/>
   </visual>
+  <!-- Mast from the lidar cap up to the camera. It is above the lidar plane, so the scan is unaffected. -->
+  <visual name="camera_mast">
+    <origin xyz="0 0 -0.065"/>
+    <geometry>
+      <cylinder radius="0.01" length="0.10"/>
+    </geometry>
+    <material name="chassis_dark"/>
+  </visual>
   <!-- Lens sits inside the camera's 0.05 m near clip, so it never blocks the view. -->
   <visual name="camera_lens">
     <origin xyz="0.03 0 0" rpy="0 1.5708 0"/>
@@ -300,7 +308,7 @@
   <parent link="base_link"/>
   <child link="camera_link"/>
 
-  <origin xyz="0.15 0.0 0.385" rpy="0 0 0"/>
+  <origin xyz="0.15 0.0 0.485" rpy="0 0 0"/>
 
 </joint>
 
