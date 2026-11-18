@@ -249,14 +249,6 @@
     </geometry>
     <material name="chassis_dark"/>
   </visual>
-  <!-- Lens sits inside the camera's 0.05 m near clip, so it never blocks the view. -->
-  <visual name="camera_lens">
-    <origin xyz="0.03 0 0" rpy="0 1.5708 0"/>
-    <geometry>
-      <cylinder radius="0.012" length="0.012"/>
-    </geometry>
-    <material name="lens_black"/>
-  </visual>
   <!-- Status beacon above the camera (above lidar plane, outside camera view). -->
   <visual name="beacon">
     <origin xyz="0 0 0.03"/>
