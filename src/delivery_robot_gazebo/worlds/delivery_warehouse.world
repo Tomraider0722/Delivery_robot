@@ -61,8 +61,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.42 0.42 0.42 1</ambient>
-            <diffuse>0.48 0.48 0.48 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/warehouse_floor.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -89,8 +96,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/outer_wall_left.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -117,8 +131,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/outer_wall_right.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -145,8 +166,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/outer_wall_back.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -173,8 +201,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/outer_wall_front.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -211,8 +246,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/room1_right_wall.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -240,8 +282,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/room1_front_wall.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -278,8 +327,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/room2_left_wall.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
@@ -306,8 +362,15 @@
             </box>
           </geometry>
           <material>
-            <ambient>0.52 0.22 0.10 1</ambient>
-            <diffuse>0.62 0.28 0.12 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>textures/room2_top_wall.jpg</albedo_map>
+                <roughness>1.0</roughness>
+                <metalness>0.0</metalness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>
