@@ -3,18 +3,63 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"
        name="delivery_robot">
 
+    <!-- Colours (visual only) -->
+    <material name="body_white"><color rgba="0.92 0.93 0.95 1.0"/></material>
+    <material name="body_teal"><color rgba="0.05 0.45 0.55 1.0"/></material>
+    <material name="chassis_dark"><color rgba="0.15 0.16 0.18 1.0"/></material>
+    <material name="lid_gray"><color rgba="0.70 0.72 0.76 1.0"/></material>
+    <material name="tire_black"><color rgba="0.06 0.06 0.06 1.0"/></material>
+    <material name="rim_silver"><color rgba="0.75 0.77 0.80 1.0"/></material>
+    <material name="headlight"><color rgba="1.0 0.82 0.20 1.0"/></material>
+    <material name="taillight"><color rgba="0.85 0.05 0.05 1.0"/></material>
+    <material name="beacon_amber"><color rgba="1.0 0.60 0.0 1.0"/></material>
+    <material name="lens_black"><color rgba="0.02 0.02 0.03 1.0"/></material>
+
     <!-- Base Link -->
     <link name="base_link">
 
-        <visual>
+        <!-- Looks only - the layers below fill the same 0.60 x 0.45 x 0.20 m
+             envelope as the collision box. Nothing sits at lidar height
+             (z = 0.335 m) because the lidar renders visuals. -->
+        <visual name="chassis_skirt">
+            <origin xyz="0 0 0.12"/>
+            <geometry><box size="0.60 0.45 0.04"/></geometry>
+            <material name="chassis_dark"/>
+        </visual>
+        <visual name="body_shell">
+            <origin xyz="0 0 0.22"/>
+            <geometry><box size="0.60 0.45 0.16"/></geometry>
+            <material name="body_white"/>
+        </visual>
+        <visual name="side_stripe">
             <origin xyz="0 0 0.20"/>
-            <geometry>
-                <box size="0.60 0.45 0.20"/>
-            </geometry>
-
-            <material name="blue">
-                <color rgba="0.2 0.4 0.8 1.0"/>
-            </material>
+            <geometry><box size="0.50 0.451 0.03"/></geometry>
+            <material name="body_teal"/>
+        </visual>
+        <visual name="top_lid">
+            <origin xyz="-0.06 0 0.31"/>
+            <geometry><box size="0.36 0.38 0.02"/></geometry>
+            <material name="lid_gray"/>
+        </visual>
+        <visual name="headlight_left">
+            <origin xyz="0.301 0.15 0.24"/>
+            <geometry><box size="0.004 0.07 0.03"/></geometry>
+            <material name="headlight"/>
+        </visual>
+        <visual name="headlight_right">
+            <origin xyz="0.301 -0.15 0.24"/>
+            <geometry><box size="0.004 0.07 0.03"/></geometry>
+            <material name="headlight"/>
+        </visual>
+        <visual name="taillight_left">
+            <origin xyz="-0.301 0.15 0.24"/>
+            <geometry><box size="0.004 0.07 0.03"/></geometry>
+            <material name="taillight"/>
+        </visual>
+        <visual name="taillight_right">
+            <origin xyz="-0.301 -0.15 0.24"/>
+            <geometry><box size="0.004 0.07 0.03"/></geometry>
+            <material name="taillight"/>
         </visual>
 
         <collision>
@@ -45,15 +90,43 @@
 
     <link name="${wheel_name}">
 
-        <visual>
+        <!-- Looks only - tyre, rim, hub and spokes (spokes make the
+             rotation visible). Collision below is unchanged. -->
+        <visual name="tire">
             <origin xyz="0 0 0" rpy="1.5708 0 0"/>
             <geometry>
                 <cylinder radius="0.125" length="0.05"/>
             </geometry>
-
-            <material name="black">
-                <color rgba="0.1 0.1 0.1 1.0"/>
-            </material>
+            <material name="tire_black"/>
+        </visual>
+        <visual name="rim">
+            <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+            <geometry>
+                <cylinder radius="0.085" length="0.052"/>
+            </geometry>
+            <material name="rim_silver"/>
+        </visual>
+        <visual name="hub">
+            <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+            <geometry>
+                <cylinder radius="0.03" length="0.056"/>
+            </geometry>
+            <material name="chassis_dark"/>
+        </visual>
+        <visual name="spoke_a">
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry><box size="0.16 0.054 0.014"/></geometry>
+            <material name="chassis_dark"/>
+        </visual>
+        <visual name="spoke_b">
+            <origin xyz="0 0 0" rpy="0 1.0472 0"/>
+            <geometry><box size="0.16 0.054 0.014"/></geometry>
+            <material name="chassis_dark"/>
+        </visual>
+        <visual name="spoke_c">
+            <origin xyz="0 0 0" rpy="0 2.0944 0"/>
+            <geometry><box size="0.16 0.054 0.014"/></geometry>
+            <material name="chassis_dark"/>
         </visual>
 
         <collision>
@@ -125,14 +198,18 @@
 
 <link name="lidar_link">
 
-    <visual>
+    <visual name="lidar_housing">
         <geometry>
             <cylinder radius="0.04" length="0.07"/>
         </geometry>
-
-        <material name="dark_gray">
-            <color rgba="0.3 0.3 0.3 1"/>
-        </material>
+        <material name="chassis_dark"/>
+    </visual>
+    <visual name="lidar_cap">
+        <origin xyz="0 0 0.038"/>
+        <geometry>
+            <cylinder radius="0.045" length="0.008"/>
+        </geometry>
+        <material name="rim_silver"/>
     </visual>
 
     <collision>
@@ -158,14 +235,27 @@
 
 <link name="camera_link">
 
-  <visual>
+  <visual name="camera_body">
     <geometry>
       <box size="0.05 0.04 0.03"/>
     </geometry>
-
-    <material name="green">
-      <color rgba="1 0.65 0 1"/>
-    </material>
+    <material name="chassis_dark"/>
+  </visual>
+  <!-- Lens sits inside the camera's 0.05 m near clip, so it never blocks the view. -->
+  <visual name="camera_lens">
+    <origin xyz="0.03 0 0" rpy="0 1.5708 0"/>
+    <geometry>
+      <cylinder radius="0.012" length="0.012"/>
+    </geometry>
+    <material name="lens_black"/>
+  </visual>
+  <!-- Status beacon above the camera (above lidar plane, outside camera view). -->
+  <visual name="beacon">
+    <origin xyz="0 0 0.03"/>
+    <geometry>
+      <cylinder radius="0.02" length="0.03"/>
+    </geometry>
+    <material name="beacon_amber"/>
   </visual>
 
   <collision>
