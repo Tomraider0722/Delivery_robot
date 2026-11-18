@@ -71,12 +71,17 @@ def generate_launch_description():
             'teleop', default_value='false',
             description='Also open the keyboard teleop terminal'),
         DeclareLaunchArgument(
+            'world', default_value='delivery_warehouse.world',
+            description='delivery_warehouse.world (realistic, default) or '
+                        'delivery_warehouse_vslam.world (visual SLAM tests)'),
+        DeclareLaunchArgument(
             'rviz_delay', default_value='8.0',
             description='Seconds after Nav2 starts before RViz opens'),
     ]
 
     simulation = IncludeLaunchDescription(
-        launch_file('delivery_robot_gazebo', 'gazebo.launch.py'))
+        launch_file('delivery_robot_gazebo', 'gazebo.launch.py'),
+        launch_arguments={'world': LaunchConfiguration('world')}.items())
 
     # Teleop starts its own twist_to_stamped, so Nav2 only needs to start one
     # when teleop is off.

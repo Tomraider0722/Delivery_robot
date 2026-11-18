@@ -1,9 +1,10 @@
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch_ros.actions import Node
-from launch.substitutions import Command
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -18,11 +19,16 @@ def generate_launch_description():
         'urdf',
         'delivery_robot.urdf.xacro'
     )
-    world = os.path.join(
+    # world:=delivery_warehouse_vslam.world is the feature-rich test world
+    # used for the visual SLAM experiments
+    world_arg = DeclareLaunchArgument(
+        'world', default_value='delivery_warehouse.world',
+        description='World file in delivery_robot_gazebo/worlds')
+    world = PathJoinSubstitution([
         get_package_share_directory('delivery_robot_gazebo'),
         'worlds',
-        'delivery_warehouse.world'
-    )
+        LaunchConfiguration('world')
+    ])
 
     controllers_file = os.path.join(
         os.path.expanduser('~'),
@@ -152,6 +158,7 @@ def generate_launch_description():
 
 
     return LaunchDescription([
+        world_arg,
         robot_state_publisher,
         gazebo,
         spawn_robot,

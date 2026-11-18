@@ -49,14 +49,16 @@ Both ran on the same drive (dock, room 1, room 2, dock; 21.6 m) and were scored 
 
 ![LiDAR vs visual SLAM](docs/slam_comparison/comparison.png)
 
-- LiDAR SLAM is the most accurate and produces a complete, clean 2D map. Visual SLAM from the depth camera alone stays within about 0.2 m on average, but its map only contains what the camera saw on the route (walls within ~5 m), so it is sparser.
+- LiDAR SLAM is the most accurate and produces a complete, clean 2D map (RMSE 0.05-0.07 m in every run). It is also the repeatable one.
 - The wheel odometry alone drifts by more than a metre over this route even after calibration.
-- The visual SLAM needs a textured scene. In the original plain-coloured warehouse the visual odometry was lost almost immediately, so the walls and floor now carry generated textures (`tools/make_world_textures.py`; a different random texture on each wall, so walls cannot be confused with each other). This changes how the world looks, not its geometry, and the lidar scan is unchanged.
-- Caveats: one run per method, in simulation, in a world with synthetic textures. The camera streams are noise-free. Treat the numbers as a comparison of the two methods in this setup, not as general benchmarks.
+- **Visual SLAM is not reliable in this setup.** The 0.21 m result above is from the best run I had. Later repeats on the same feature-rich world gave an RMSE of 2.3 m and 2.7 m (with and without the chair legs, so the legs are not the cause), and the visual odometry reported "lost" for roughly half of the frames. On the realistic brick, plaster and concrete world it was worse (1.2 to 4.0 m). Treat 0.21 m as a best case, not a typical result.
+- It needs a scene with lots of distinct detail. For the experiments there is a separate feature-rich test world with random colour patterns (`world:=delivery_warehouse_vslam.world`, textures in `worlds/textures_vslam/`). It is not meant to look real. The default world (`delivery_warehouse.world`) has realistic brick walls, painted plaster room walls and a concrete floor (`tools/make_world_textures.py`).
+- Caveats: only a handful of runs, in simulation, noise-free camera streams. Camera-only visual odometry could probably be made steadier with a wheel-odometry or IMU motion hint, better tuning, or a better camera setup; I did not get that working.
 
 Reproduce it (simulation, Nav2 and LiDAR SLAM running with `bringup.launch.py mode:=slam`):
 
 ```bash
+# start the simulation with: ... bringup.launch.py mode:=slam world:=delivery_warehouse_vslam.world
 ros2 launch delivery_robot_navigation visual_slam.launch.py        # camera-only visual SLAM (/vo, /vslam/map)
 python3 tools/slam_compare_logger.py --out run/poses.json --stop-file run/stop.flag &
 ros2 run delivery_robot_controller deliver room1 room2 --wait 3 --ros-args -p use_sim_time:=true
@@ -105,7 +107,7 @@ Start everything (Gazebo, localization on the saved map, Nav2, RViz, speed slide
 ros2 launch delivery_robot_bringup bringup.launch.py
 ```
 
-Useful arguments: `mode:=slam` (build a new map instead of using the saved one), `rviz:=false`, `speed_slider:=false`, `route_control:=false`, `delivery_panel:=false`, `teleop:=true`.
+Useful arguments: `mode:=slam` (build a new map instead of using the saved one), `world:=delivery_warehouse_vslam.world` (feature-rich test world for visual SLAM), `rviz:=false`, `speed_slider:=false`, `route_control:=false`, `delivery_panel:=false`, `teleop:=true`.
 
 ### Deliveries
 
