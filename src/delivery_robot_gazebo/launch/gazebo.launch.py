@@ -139,6 +139,7 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/camera/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
             '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
         ],
         parameters=[
