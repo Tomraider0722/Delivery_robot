@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -49,6 +50,8 @@ def generate_launch_description():
             # '' = camera only. 'odom' uses the wheel odometry only as a
             # motion hint so tracking can recover after a bad frame.
             'guess_frame_id': LaunchConfiguration('guess_frame_id'),
+            'Vis/FeatureType': ParameterValue(
+                LaunchConfiguration('feature_type'), value_type=str),
         }],
         remappings=rgbd_remaps + [('odom', '/vo')],
     )
@@ -86,6 +89,9 @@ def generate_launch_description():
             default_value='',
             description="Frame of an odometry TF used as motion guess "
                         "('odom' = wheel odometry); empty = camera only"),
+        DeclareLaunchArgument(
+            'feature_type', default_value='8',
+            description='RTAB-Map Vis/FeatureType (8 = GFTT/ORB, 1 = SIFT)'),
         DeclareLaunchArgument(
             'database_path',
             default_value='/tmp/delivery_robot_rtabmap.db',

@@ -140,6 +140,14 @@ def generate_launch_description():
         output='screen'
     )
 
+    imu_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=['/imu@sensor_msgs/msg/Imu[gz.msgs.IMU'],
+        parameters=[{'override_frame_id': 'imu_link'}],
+        output='screen'
+    )
+
     camera_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -166,5 +174,6 @@ def generate_launch_description():
         load_diff_drive_controller,
         clock_bridge,
         scan_bridge,
+        imu_bridge,
         camera_bridge
     ])
