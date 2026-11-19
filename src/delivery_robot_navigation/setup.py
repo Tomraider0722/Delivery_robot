@@ -33,6 +33,7 @@ setup(
         'console_scripts': [
             'speed_control = delivery_robot_navigation.speed_control:main',
             'route_control = delivery_robot_navigation.route_control:main',
+            'slam_compare_view = delivery_robot_navigation.slam_compare_view:main',
         ],
     },
 )
