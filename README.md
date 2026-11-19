@@ -22,6 +22,7 @@ Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; downlo
 - **Odometry calibration** for the skid-steer base: `wheel_separation_multiplier: 1.28` corrects a ~28% yaw over-report caused by wheel slip, which otherwise makes SLAM drift and produce ghost maps.
 - **Visual SLAM** (RTAB-Map, RGB-D camera only) next to LiDAR SLAM, with a measured comparison against Gazebo ground truth.
 - **Multi-stop deliveries** (`deliver`): visit named places in order, wait for confirmation at each, skip unreachable stops, return to the dock.
+- **Cargo perception**: a deck camera and a colour-based detector (`cargo_detector`) tell whether the red cargo box is on the robot's deck. With `deliver --auto-confirm` (or the Delivery window's checkbox) a delivery confirms itself when the cargo is taken, instead of someone pressing Delivered.
 - **IMU**: a simulated IMU (`/imu`, 100 Hz, gyro and accelerometer with noise) is on the robot. Nothing uses it yet.
 - **Operator tools**: a Delivery button window, a speed-limit slider, and a route tool to click several stops in RViz.
 - **One-command bringup** that starts the whole system in order and waits for each stage to be ready.
@@ -89,7 +90,7 @@ python3 tools/slam_compare_report.py run docs/slam_comparison
 | `delivery_robot_exploration` | `nav2_exploration` (frontier exploration with Nav2) and the older reactive `autonomous_exploration` |
 | `delivery_robot_controller` | `deliver` mission command, `delivery_panel` window, named locations |
 | `delivery_robot_bringup` | `bringup.launch.py`, the one-command launch |
-| `delivery_robot_perception` | Empty for now (planned) |
+| `delivery_robot_perception` | `cargo_detector` (deck camera, publishes `/cargo_present`) and `cargo_tool` (load or take the simulated cargo) |
 
 ## Requirements
 
@@ -131,6 +132,24 @@ Useful arguments: `mode:=slam` (build a new map instead of using the saved one),
 
   `--confirm` waits at each stop for Enter or the service `/delivery/confirm`; without it the robot waits `--wait N` seconds. Places are defined in `src/delivery_robot_controller/config/locations.yaml`.
 
+### Cargo detection
+
+The robot has a small camera on a post that looks down at its top deck. `cargo_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) finds the red cargo box by its colour and publishes `/cargo_present` (`std_msgs/Bool`, latched) and an annotated `/cargo/debug_image`.
+
+```bash
+ros2 run delivery_robot_perception cargo_tool load    # put the cargo on the deck (simulation: the person loading)
+ros2 run delivery_robot_perception cargo_tool take    # remove it (simulation: the customer taking it)
+ros2 run delivery_robot_controller deliver room1 room2 --auto-confirm
+```
+
+What the deck camera sees (`/cargo/debug_image`; the green box is the detection):
+
+![Cargo detection](docs/cargo_detection.png)
+
+With `--auto-confirm` the robot waits at each stop until the detector reports the cargo gone, then moves on; a stop where the deck is already empty is passed straight away. The Delivery window has Load cargo and Take cargo buttons, a "Cargo: on deck / empty" label and the automatic-confirmation checkbox; Delivered still works as a manual override. The cargo box is hidden from the lidar (a Gazebo visibility mask), so it does not appear in the scan or the maps.
+
+Limits: it detects a red object in the deck region of the image, not "the parcel" in general; it is tested in simulation only, in the default world with its red brick walls (the region of interest keeps them out).
+
 ### Clicking several stops in RViz
 
 Pick the **Publish Point** tool once and click stops on the map. Numbered markers appear. Press **Go** in the Route window to drive them in order. **Undo**, **Clear** and **Cancel** are in the same window.
@@ -156,7 +175,7 @@ Manual mapping works with `teleop:=true`; save the result with `nav2_map_server`
 
 ## Roadmap
 
-- Camera-based cargo detection (perception package)
+- Object detection beyond the cargo box (people, doors, obstacles)
 - Order queue, battery and docking
 - Automatic slowing near doorways
 - Automated launch tests

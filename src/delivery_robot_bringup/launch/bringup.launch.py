@@ -68,6 +68,9 @@ def generate_launch_description():
             'delivery_panel', default_value='true',
             description='Open the Deliver window (pick stops, press Deliver)'),
         DeclareLaunchArgument(
+            'perception', default_value='true',
+            description='Start the cargo detector (deck camera)'),
+        DeclareLaunchArgument(
             'teleop', default_value='false',
             description='Also open the keyboard teleop terminal'),
         DeclareLaunchArgument(
@@ -155,6 +158,12 @@ def generate_launch_description():
         *[UnsetEnvironmentVariable(name) for name in SNAP_ENV_VARS],
         simulation,
         teleop_launch,
+        Node(
+            package='delivery_robot_perception',
+            executable='cargo_detector',
+            name='cargo_detector',
+            output='log',
+            condition=IfCondition(LaunchConfiguration('perception'))),
         wait_sim,
         start_localization,
         start_navigation,

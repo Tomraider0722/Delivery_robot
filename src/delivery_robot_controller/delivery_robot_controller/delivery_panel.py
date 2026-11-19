@@ -5,6 +5,11 @@ robot drives to each one. At every stop press "Delivered" once the cargo
 has been taken and the robot moves on; at the end it returns to the dock.
 Cancel stops the robot and ends the mission.
 
+With the cargo detector running (delivery_robot_perception), the robot
+confirms by itself when the cargo is taken from the deck, so "Delivered"
+is only needed as a manual override. "Load cargo" and "Take cargo" stand in
+for the person loading and the customer in the simulation.
+
 Needs the simulation, localization and Nav2 running (bringup.launch.py).
 """
 
@@ -66,6 +71,21 @@ class DeliveryPanel:
         self.cancel_btn = tk.Button(row, text='Cancel', command=self.cancel)
         self.cancel_btn.pack(side='left', padx=2)
 
+        cargo = tk.Frame(self.root)
+        cargo.pack(padx=10, pady=(0, 4))
+        self.cargo_label = tk.Label(cargo, width=22, anchor='w')
+        self.cargo_label.pack(side='left')
+        tk.Button(cargo, text='Load cargo',
+                  command=lambda: self.sim_cargo('load')
+                  ).pack(side='left', padx=2)
+        tk.Button(cargo, text='Take cargo',
+                  command=lambda: self.sim_cargo('take')
+                  ).pack(side='left', padx=2)
+        self.auto = tk.BooleanVar(value=True)
+        tk.Checkbutton(self.root, text='Confirm automatically when the '
+                       'cargo is taken', variable=self.auto
+                       ).pack(padx=10, anchor='w')
+
         self.status_label = tk.Label(self.root, width=40, anchor='w',
                                      wraplength=300, justify='left')
         self.status_label.pack(padx=10, pady=(0, 10))
@@ -107,6 +127,16 @@ class DeliveryPanel:
         threading.Thread(target=self.mission, args=(stops,),
                          daemon=True).start()
 
+    def sim_cargo(self, what):
+        """Load or take the cargo in the simulation (worker thread)."""
+        def work():
+            from delivery_robot_perception import cargo_tool
+            if what == 'load':
+                cargo_tool.load_cargo()
+            else:
+                cargo_tool.take_cargo()
+        threading.Thread(target=work, daemon=True).start()
+
     def delivered(self):
         """The cargo was taken: let the robot move on."""
         if self.waiting:
@@ -123,6 +153,7 @@ class DeliveryPanel:
     def mission(self, stops):
         """Worker thread: run the whole delivery."""
         try:
+            self.node.auto_confirm = self.auto.get()
             if not self.node.client.wait_for_server(timeout_sec=5.0):
                 self.status = 'Nav2 is not available yet, try again soon'
                 return
@@ -144,6 +175,12 @@ class DeliveryPanel:
 
     def refresh(self):
         """Update labels and enable only the buttons that make sense."""
+        if not self.running:
+            rclpy.spin_once(self.node, timeout_sec=0.0)   # cargo state
+        present = self.node.cargo_present
+        self.cargo_label.config(text='Cargo: ' + (
+            'no detector' if present is None
+            else 'on deck' if present else 'empty'))
         text = ' -> '.join(self.queue) if self.queue else '(no stops yet)'
         self.queue_label.config(text='Stops: ' + text)
         self.status_label.config(text=self.status)

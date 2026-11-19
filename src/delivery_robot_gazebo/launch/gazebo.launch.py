@@ -148,6 +148,13 @@ def generate_launch_description():
         output='screen'
     )
 
+    deck_camera_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=['/deck_camera@sensor_msgs/msg/Image[gz.msgs.Image'],
+        output='screen'
+    )
+
     camera_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -175,5 +182,6 @@ def generate_launch_description():
         clock_bridge,
         scan_bridge,
         imu_bridge,
+        deck_camera_bridge,
         camera_bridge
     ])

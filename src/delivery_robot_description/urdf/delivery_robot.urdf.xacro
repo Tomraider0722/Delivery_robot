@@ -322,6 +322,34 @@
   <preserveFixedJoint>true</preserveFixedJoint>
 </gazebo>
 
+<!-- Deck camera on a post above the front camera, looking back and down at
+     the cargo deck. It sits above the lidar plane and behind the front camera. -->
+<link name="deck_camera_mount">
+  <visual name="deck_camera_post">
+    <geometry><cylinder radius="0.008" length="0.07"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+</link>
+
+<joint name="deck_camera_mount_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="deck_camera_mount"/>
+  <origin xyz="0.15 0 0.565" rpy="0 0 0"/>
+</joint>
+
+<link name="deck_camera_link">
+  <visual name="deck_camera_body">
+    <geometry><box size="0.03 0.04 0.025"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+</link>
+
+<joint name="deck_camera_joint" type="fixed">
+  <parent link="deck_camera_mount"/>
+  <child link="deck_camera_link"/>
+  <origin xyz="0 0 0.04" rpy="0 0.84 3.14159"/>
+</joint>
+
 <link name="camera_optical_frame"/>
 
 <joint name="camera_optical_joint" type="fixed">
@@ -397,6 +425,9 @@
         <max>12.0</max>
         <resolution>0.01</resolution>
       </range>
+
+      <!-- Do not see visuals with flag 2 (the cargo box on the deck). -->
+      <visibility_mask>4294967293</visibility_mask>
     </ray>
 
     <always_on>true</always_on>
@@ -424,6 +455,29 @@
         <z><noise type="gaussian"><mean>0.0</mean><stddev>0.01</stddev></noise></z>
       </linear_acceleration>
     </imu>
+  </sensor>
+</gazebo>
+
+<!-- ================= Deck camera ================= -->
+
+<gazebo reference="deck_camera_link">
+  <sensor name="deck_camera_sensor" type="camera">
+    <topic>/deck_camera</topic>
+    <update_rate>10</update_rate>
+    <camera>
+      <horizontal_fov>1.4</horizontal_fov>
+      <image>
+        <width>320</width>
+        <height>240</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.05</near>
+        <far>5.0</far>
+      </clip>
+    </camera>
+    <always_on>true</always_on>
+    <visualize>false</visualize>
   </sensor>
 </gazebo>
 

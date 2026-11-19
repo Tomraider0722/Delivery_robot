@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'cargo_tool = delivery_robot_perception.cargo_tool:main',
+            'cargo_detector = delivery_robot_perception.cargo_detector:main',
         ],
     },
 )

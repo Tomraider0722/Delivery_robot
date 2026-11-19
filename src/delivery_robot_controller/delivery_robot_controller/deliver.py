@@ -3,13 +3,16 @@
 Usage:
     ros2 run delivery_robot_controller deliver room2
     ros2 run delivery_robot_controller deliver room1 room2 --confirm
+    ros2 run delivery_robot_controller deliver room1 --auto-confirm
     ros2 run delivery_robot_controller deliver --list
     ros2 run delivery_robot_controller deliver room1 --wait 5 --no-return
 
 Several destinations are visited in the order given. With --confirm the
 robot waits at each stop until someone presses Enter in this terminal or
 calls the service /delivery/confirm (std_srvs/Trigger), then moves on; it
-gives up waiting after --confirm-timeout seconds. A stop that cannot be
+gives up waiting after --confirm-timeout seconds. With --auto-confirm the
+robot also confirms by itself when the cargo detector reports that the
+cargo was taken (needs ros2 run delivery_robot_perception cargo_detector). A stop that cannot be
 reached is skipped and reported at the end.
 
 Needs the simulation, localization and Nav2 running (see CLAUDE.md).
@@ -28,7 +31,9 @@ from nav2_msgs.action import NavigateToPose
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from rclpy.utilities import remove_ros_args
+from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 import yaml
 
@@ -53,7 +58,15 @@ class Deliver(Node):
         self.confirmed = False
         self.cancel_requested = False
         self.on_status = None
+        # With auto_confirm the robot waits for the cargo detector
+        # (/cargo_present) to say the cargo was taken. None = no detector yet.
+        self.auto_confirm = False
+        self.cargo_present = None
         self.create_service(Trigger, '/delivery/confirm', self.on_confirm)
+        self.create_subscription(
+            Bool, '/cargo_present', self.on_cargo,
+            QoSProfile(depth=1, reliability=QoSReliabilityPolicy.RELIABLE,
+                       durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
 
     def say(self, text):
         """Log a status line and pass it to the panel, if there is one."""
@@ -64,6 +77,10 @@ class Deliver(Node):
     def cancel(self):
         """Stop the mission in progress (called from another thread)."""
         self.cancel_requested = True
+
+    def on_cargo(self, msg):
+        """Latest cargo state from the detector."""
+        self.cargo_present = msg.data
 
     def on_confirm(self, request, response):
         """Service callback: the cargo has been taken."""
@@ -132,14 +149,24 @@ class Deliver(Node):
     def wait_for_confirmation(self, timeout):
         """Wait for Enter or /delivery/confirm; return True if confirmed."""
         self.confirmed = False
-        self.say('Waiting for confirmation (Enter, /delivery/confirm or '
-                 'the Delivered button)')
+        auto = self.auto_confirm and self.cargo_present is not None
+        if self.auto_confirm and not auto:
+            self.get_logger().warn(
+                'No cargo detector running (/cargo_present); confirm by hand')
+        if auto and not self.cargo_present:
+            self.say('Deck is empty, nothing to hand over')
+            return True
+        self.say('Waiting for confirmation (cargo taken, Enter, '
+                 '/delivery/confirm or the Delivered button)')
         end = self.get_clock().now().nanoseconds / 1e9 + timeout
         while not self.confirmed:
             if (self.cancel_requested
                     or self.get_clock().now().nanoseconds / 1e9 >= end):
                 return False
             rclpy.spin_once(self, timeout_sec=0.2)
+            if auto and self.cargo_present is False:
+                self.say('Cargo taken')
+                self.confirmed = True
             if sys.stdin.isatty() and select.select(
                     [sys.stdin], [], [], 0)[0]:
                 sys.stdin.readline()
@@ -193,6 +220,10 @@ def main(args=None):
     parser.add_argument('--confirm', action='store_true',
                         help='wait for Enter or /delivery/confirm at each '
                              'stop instead of a fixed time')
+    parser.add_argument('--auto-confirm', action='store_true',
+                        help='confirm by itself when the cargo detector '
+                             '(cargo_detector) sees the cargo taken; '
+                             'implies --confirm')
     parser.add_argument('--confirm-timeout', type=float, default=120.0,
                         help='seconds to wait for confirmation (default 120)')
     parser.add_argument('--no-return', action='store_true',
@@ -225,6 +256,8 @@ def main(args=None):
 
     rclpy.init(args=args)
     node = Deliver()
+    node.auto_confirm = opts.auto_confirm
+    opts.confirm = opts.confirm or opts.auto_confirm
     log = node.get_logger()
     code = 1
 
