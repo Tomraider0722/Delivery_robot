@@ -350,6 +350,43 @@
   <origin xyz="0 0 0.04" rpy="0 0.84 3.14159"/>
 </joint>
 
+<!-- Perception camera, an RGB-D camera at the top of the mast, high enough to
+     look down onto table tops and rack shelves. The mast is above the lidar
+     plane and behind the front camera, so neither sensor sees it. -->
+<link name="perception_mast">
+  <visual name="perception_mast_pole">
+    <geometry><cylinder radius="0.008" length="0.85"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+</link>
+
+<joint name="perception_mast_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="perception_mast"/>
+  <origin xyz="0.15 0 1.025" rpy="0 0 0"/>
+</joint>
+
+<link name="perception_camera_link">
+  <visual name="perception_camera_body">
+    <geometry><box size="0.05 0.06 0.04"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+</link>
+
+<joint name="perception_camera_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="perception_camera_link"/>
+  <origin xyz="0.15 0 1.45" rpy="0 0.55 0"/>
+</joint>
+
+<link name="perception_camera_optical_frame"/>
+
+<joint name="perception_camera_optical_joint" type="fixed">
+  <parent link="perception_camera_link"/>
+  <child link="perception_camera_optical_frame"/>
+  <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+</joint>
+
 <link name="camera_optical_frame"/>
 
 <joint name="camera_optical_joint" type="fixed">
@@ -475,6 +512,35 @@
         <near>0.05</near>
         <far>5.0</far>
       </clip>
+    </camera>
+    <always_on>true</always_on>
+    <visualize>false</visualize>
+  </sensor>
+</gazebo>
+
+<!-- ================= Perception camera ================= -->
+
+<gazebo reference="perception_camera_link">
+  <sensor name="perception_camera_sensor" type="rgbd_camera">
+    <topic>/perception_camera</topic>
+    <update_rate>10</update_rate>
+    <camera>
+      <horizontal_fov>1.2</horizontal_fov>
+      <image>
+        <width>960</width>
+        <height>720</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.1</near>
+        <far>6.0</far>
+      </clip>
+      <depth_camera>
+        <clip>
+          <near>0.2</near>
+          <far>5.0</far>
+        </clip>
+      </depth_camera>
     </camera>
     <always_on>true</always_on>
     <visualize>false</visualize>

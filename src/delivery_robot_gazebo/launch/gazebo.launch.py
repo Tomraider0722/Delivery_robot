@@ -155,6 +155,22 @@ def generate_launch_description():
         output='screen'
     )
 
+    perception_camera_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '/perception_camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/perception_camera/depth_image@sensor_msgs/msg/Image'
+            '[gz.msgs.Image',
+            '/perception_camera/camera_info@sensor_msgs/msg/CameraInfo'
+            '[gz.msgs.CameraInfo'
+        ],
+        parameters=[{
+            'override_frame_id': 'perception_camera_optical_frame'
+        }],
+        output='screen'
+    )
+
     camera_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -183,5 +199,6 @@ def generate_launch_description():
         scan_bridge,
         imu_bridge,
         deck_camera_bridge,
+        perception_camera_bridge,
         camera_bridge
     ])

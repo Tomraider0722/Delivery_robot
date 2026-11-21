@@ -26,8 +26,9 @@ import select
 import sys
 
 from ament_index_python.packages import get_package_share_directory
+from builtin_interfaces.msg import Duration
 from geometry_msgs.msg import PoseStamped
-from nav2_msgs.action import NavigateToPose
+from nav2_msgs.action import NavigateToPose, Spin
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
@@ -35,6 +36,7 @@ from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from rclpy.utilities import remove_ros_args
 from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
+from tf2_ros import Buffer, TransformListener
 import yaml
 
 # action_msgs/GoalStatus values
@@ -54,6 +56,9 @@ class Deliver(Node):
     def __init__(self, **kwargs):
         super().__init__('deliver', **kwargs)
         self.client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.spin_client = ActionClient(self, Spin, 'spin')
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.last_log = 0.0
         self.confirmed = False
         self.cancel_requested = False
@@ -118,6 +123,10 @@ class Deliver(Node):
         status = result.result().status
 
         if status == STATUS_SUCCEEDED:
+            # Nav2 ignores the final heading (yaw_goal_tolerance is wide), so
+            # places that need the robot to face something turn on the spot.
+            if loc.get('align', False):
+                self.align(name, yaw)
             self.get_logger().info(f'Arrived at {name}')
             return True
 
@@ -129,6 +138,36 @@ class Deliver(Node):
             f'Could not reach {name} (status {status}: '
             f'{"canceled" if status == STATUS_CANCELED else "aborted"})')
         return False
+
+    def align(self, name, yaw_goal):
+        """Turn on the spot to face yaw_goal (map frame) using Nav2's spin."""
+        try:
+            t = self.tf_buffer.lookup_transform('map', 'base_link',
+                                                rclpy.time.Time())
+        except Exception as err:  # no localization yet
+            self.get_logger().warn(f'Cannot align at {name}: {err}')
+            return
+        q = t.transform.rotation
+        now = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
+                         1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+        error = math.atan2(math.sin(yaw_goal - now), math.cos(yaw_goal - now))
+        if abs(error) < 0.1 or not self.spin_client.wait_for_server(
+                timeout_sec=2.0):
+            return
+        self.say(f'Facing {name}')
+        goal = Spin.Goal()
+        goal.target_yaw = float(error)
+        goal.time_allowance = Duration(sec=20)
+        send = self.spin_client.send_goal_async(goal)
+        rclpy.spin_until_future_complete(self, send)
+        handle = send.result()
+        if not handle.accepted:
+            return
+        result = handle.get_result_async()
+        while not result.done():
+            rclpy.spin_once(self, timeout_sec=0.2)
+            if self.cancel_requested:
+                handle.cancel_goal_async()
 
     def feedback(self, msg):
         """Log the distance left every few seconds."""

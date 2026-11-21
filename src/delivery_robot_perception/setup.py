@@ -10,6 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/config',
+            ['config/places.yaml', 'config/blocks_truth.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,6 +28,7 @@ setup(
         'console_scripts': [
             'cargo_tool = delivery_robot_perception.cargo_tool:main',
             'cargo_detector = delivery_robot_perception.cargo_detector:main',
+            'block_detector = delivery_robot_perception.block_detector:main',
         ],
     },
 )

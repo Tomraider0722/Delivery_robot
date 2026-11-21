@@ -1677,5 +1677,208 @@
       </link>
     </model>
 
+<!-- BLOCKS BEGIN -->
+    <!-- Blocks to carry (made by tools/make_world_blocks.py) -->
+    <model name="block_red_cube_table1">
+      <pose>2.65 2.0 0.832 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+          <material>
+            <ambient>0.9 0.05 0.05 1</ambient>
+            <diffuse>0.9 0.05 0.05 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_blue_cube_table1">
+      <pose>3.05 2.25 0.822 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.04 0.04 0.04</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.04 0.04 0.04</size></box></geometry>
+          <material>
+            <ambient>0.1 0.2 0.9 1</ambient>
+            <diffuse>0.1 0.2 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_green_cylinder_table1">
+      <pose>3.4 2.0 0.842 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.03</radius><length>0.08</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.03</radius><length>0.08</length></cylinder></geometry>
+          <material>
+            <ambient>0.1 0.7 0.1 1</ambient>
+            <diffuse>0.1 0.7 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_yellow_bar_table2">
+      <pose>-3.35 -2.0 0.822 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.12 0.04 0.04</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.12 0.04 0.04</size></box></geometry>
+          <material>
+            <ambient>1.0 0.9 0.05 1</ambient>
+            <diffuse>1.0 0.9 0.05 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_orange_cube_table2">
+      <pose>-2.9 -2.25 0.842 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.08 0.08 0.08</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.08 0.08 0.08</size></box></geometry>
+          <material>
+            <ambient>1.0 0.5 0.0 1</ambient>
+            <diffuse>1.0 0.5 0.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_purple_cylinder_table2">
+      <pose>-2.6 -2.0 0.8245 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.022</radius><length>0.045</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.022</radius><length>0.045</length></cylinder></geometry>
+          <material>
+            <ambient>0.5 0.1 0.7 1</ambient>
+            <diffuse>0.5 0.1 0.7 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_cyan_cube_room1_lower">
+      <pose>-4.75 4.5 0.332 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+          <material>
+            <ambient>0.0 0.8 0.8 1</ambient>
+            <diffuse>0.0 0.8 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_magenta_bar_room1_middle">
+      <pose>-4.45 4.5 0.972 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.12 0.04 0.04</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.12 0.04 0.04</size></box></geometry>
+          <material>
+            <ambient>0.9 0.1 0.6 1</ambient>
+            <diffuse>0.9 0.1 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_blue_cylinder_room2_lower">
+      <pose>4.35 -4.5 0.337 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.035</radius><length>0.07</length></cylinder></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.035</radius><length>0.07</length></cylinder></geometry>
+          <material>
+            <ambient>0.1 0.2 0.9 1</ambient>
+            <diffuse>0.1 0.2 0.9 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="block_orange_bar_room2_middle">
+      <pose>4.75 -4.5 0.972 0 0 0</pose>
+      <link name="block">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.11 0.04 0.04</size></box></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.11 0.04 0.04</size></box></geometry>
+          <material>
+            <ambient>1.0 0.5 0.0 1</ambient>
+            <diffuse>1.0 0.5 0.0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- BLOCKS END -->
   </world>
 </sdf>

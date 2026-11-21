@@ -69,7 +69,8 @@ def generate_launch_description():
             description='Open the Deliver window (pick stops, press Deliver)'),
         DeclareLaunchArgument(
             'perception', default_value='true',
-            description='Start the cargo detector (deck camera)'),
+            description='Start the cargo detector (deck camera) and the block '
+                        'detector (perception camera)'),
         DeclareLaunchArgument(
             'teleop', default_value='false',
             description='Also open the keyboard teleop terminal'),
@@ -162,6 +163,12 @@ def generate_launch_description():
             package='delivery_robot_perception',
             executable='cargo_detector',
             name='cargo_detector',
+            output='log',
+            condition=IfCondition(LaunchConfiguration('perception'))),
+        Node(
+            package='delivery_robot_perception',
+            executable='block_detector',
+            name='block_detector',
             output='log',
             condition=IfCondition(LaunchConfiguration('perception'))),
         wait_sim,

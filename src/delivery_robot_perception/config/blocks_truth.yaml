@@ -1,0 +1,121 @@
+blocks:
+- name: block_red_cube_table1
+  place: table1
+  colour: red
+  shape: cube
+  size: medium
+  x: 2.65
+  y: 2.0
+  z: 0.832
+  dimensions_m:
+  - 0.06
+  - 0.06
+  - 0.06
+- name: block_blue_cube_table1
+  place: table1
+  colour: blue
+  shape: cube
+  size: small
+  x: 3.05
+  y: 2.25
+  z: 0.822
+  dimensions_m:
+  - 0.04
+  - 0.04
+  - 0.04
+- name: block_green_cylinder_table1
+  place: table1
+  colour: green
+  shape: cylinder
+  size: medium
+  x: 3.4
+  y: 2.0
+  z: 0.842
+  dimensions_m:
+  - 0.06
+  - 0.06
+  - 0.08
+- name: block_yellow_bar_table2
+  place: table2
+  colour: yellow
+  shape: bar
+  size: large
+  x: -3.35
+  y: -2.0
+  z: 0.822
+  dimensions_m:
+  - 0.12
+  - 0.04
+  - 0.04
+- name: block_orange_cube_table2
+  place: table2
+  colour: orange
+  shape: cube
+  size: medium
+  x: -2.9
+  y: -2.25
+  z: 0.842
+  dimensions_m:
+  - 0.08
+  - 0.08
+  - 0.08
+- name: block_purple_cylinder_table2
+  place: table2
+  colour: purple
+  shape: cylinder
+  size: small
+  x: -2.6
+  y: -2.0
+  z: 0.8245
+  dimensions_m:
+  - 0.044
+  - 0.044
+  - 0.045
+- name: block_cyan_cube_room1_lower
+  place: room1_lower
+  colour: cyan
+  shape: cube
+  size: medium
+  x: -4.75
+  y: 4.5
+  z: 0.332
+  dimensions_m:
+  - 0.06
+  - 0.06
+  - 0.06
+- name: block_magenta_bar_room1_middle
+  place: room1_middle
+  colour: magenta
+  shape: bar
+  size: large
+  x: -4.45
+  y: 4.5
+  z: 0.972
+  dimensions_m:
+  - 0.12
+  - 0.04
+  - 0.04
+- name: block_blue_cylinder_room2_lower
+  place: room2_lower
+  colour: blue
+  shape: cylinder
+  size: medium
+  x: 4.35
+  y: -4.5
+  z: 0.337
+  dimensions_m:
+  - 0.07
+  - 0.07
+  - 0.07
+- name: block_orange_bar_room2_middle
+  place: room2_middle
+  colour: orange
+  shape: bar
+  size: large
+  x: 4.75
+  y: -4.5
+  z: 0.972
+  dimensions_m:
+  - 0.11
+  - 0.04
+  - 0.04

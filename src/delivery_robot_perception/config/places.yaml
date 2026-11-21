@@ -1,0 +1,16 @@
+# Surfaces where blocks are put (map frame, metres). A block belongs to a
+# place when it stands on one of its surfaces: inside the x and y range, with
+# its bottom at the surface height z. Table tops are at 0.80 m, the rack
+# shelves (tops) at 0.30 m (lower) and 0.95 m (middle). The rack ranges stop
+# at the inner faces of the posts so the posts are not taken for blocks.
+places:
+  table1:
+    table top: {x: [2.25, 3.75], y: [1.70, 2.50], z: 0.80}
+  table2:
+    table top: {x: [-3.75, -2.25], y: [-2.50, -1.70], z: 0.80}
+  room1:
+    lower shelf: {x: [-5.08, -4.12], y: [4.25, 4.78], z: 0.30}
+    middle shelf: {x: [-5.08, -4.12], y: [4.25, 4.78], z: 0.95}
+  room2:
+    lower shelf: {x: [4.12, 5.08], y: [-4.78, -4.25], z: 0.30}
+    middle shelf: {x: [4.12, 5.08], y: [-4.78, -4.25], z: 0.95}

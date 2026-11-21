@@ -22,7 +22,7 @@ MODEL = 'cargo_box'
 # Cargo size and where it sits on the deck, relative to base_link (metres).
 SIZE = 0.14
 DECK_X = -0.10
-DECK_TOP_Z = 0.32
+DECK_TOP_Z = 0.37    # 0.32 above base_link, which rests 0.05 above the floor
 
 # visibility_flags 2: the lidar mask (see the URDF) leaves this bit out.
 CARGO_SDF = (

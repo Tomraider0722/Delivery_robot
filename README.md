@@ -22,6 +22,7 @@ Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; downlo
 - **Odometry calibration** for the skid-steer base: `wheel_separation_multiplier: 1.28` corrects a ~28% yaw over-report caused by wheel slip, which otherwise makes SLAM drift and produce ghost maps.
 - **Visual SLAM** (RTAB-Map, RGB-D camera only) next to LiDAR SLAM, with a measured comparison against Gazebo ground truth.
 - **Multi-stop deliveries** (`deliver`): visit named places in order, wait for confirmation at each, skip unreachable stops, return to the dock.
+- **Block perception**: ten blocks of different colours, shapes (cube, bar, cylinder) and sizes sit on two tables and two racks. A camera on a mast finds them, names their colour, shape and size, and gives their position on the map and relative to the robot. The places are called `table1`, `table2`, `room1` and `room2`.
 - **Cargo perception**: a deck camera and a colour-based detector (`cargo_detector`) tell whether the red cargo box is on the robot's deck. With `deliver --auto-confirm` (or the Delivery window's checkbox) a delivery confirms itself when the cargo is taken, instead of someone pressing Delivered.
 - **IMU**: a simulated IMU (`/imu`, 100 Hz, gyro and accelerometer with noise) is on the robot. Nothing uses it yet.
 - **Operator tools**: a Delivery button window, a speed-limit slider, and a route tool to click several stops in RViz.
@@ -90,7 +91,7 @@ python3 tools/slam_compare_report.py run docs/slam_comparison
 | `delivery_robot_exploration` | `nav2_exploration` (frontier exploration with Nav2) and the older reactive `autonomous_exploration` |
 | `delivery_robot_controller` | `deliver` mission command, `delivery_panel` window, named locations |
 | `delivery_robot_bringup` | `bringup.launch.py`, the one-command launch |
-| `delivery_robot_perception` | `cargo_detector` (deck camera, publishes `/cargo_present`) and `cargo_tool` (load or take the simulated cargo) |
+| `delivery_robot_perception` | `block_detector` (mast camera, finds the blocks on tables and racks), `cargo_detector` (deck camera, publishes `/cargo_present`) and `cargo_tool` (load or take the simulated cargo) |
 
 ## Requirements
 
@@ -150,6 +151,42 @@ With `--auto-confirm` the robot waits at each stop until the detector reports th
 
 Limits: it detects a red object in the deck region of the image, not "the parcel" in general; it is tested in simulation only, in the default world with its red brick walls (the region of interest keeps them out).
 
+### Block perception
+
+Blocks of different shapes and sizes stand on the table tops and on the lower and middle shelf of the rack in each room. The layout is defined in `tools/make_world_blocks.py`, which also writes the ground-truth list `src/delivery_robot_perception/config/blocks_truth.yaml`:
+
+| Place | Blocks |
+|---|---|
+| `table1` | red cube (medium), blue cube (small), green cylinder (medium) |
+| `table2` | yellow bar (large), orange cube (medium), purple cylinder (small) |
+| `room1` rack | cyan cube (medium, lower shelf), magenta bar (large, middle shelf) |
+| `room2` rack | blue cylinder (medium, lower shelf), orange bar (large, middle shelf) |
+
+The robot has an RGB-D perception camera at the top of its mast (about 1.5 m high, looking forward and down, so it can see table tops and shelves; the front camera is too low for that). `block_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) turns every depth pixel into a 3D point in the map frame, keeps the points that stand just above a known surface (`config/places.yaml`), groups them into blocks, and takes the colour from the image and the shape and size from the top face. It publishes `/blocks` (JSON, latched), `/blocks/markers` (RViz) and `/blocks/debug_image`.
+
+![Block detection](docs/block_detection.jpg)
+
+```bash
+ros2 run delivery_robot_controller deliver table1      # drive to a place; the robot turns to face it (align: true in locations.yaml)
+ros2 topic echo /blocks --full-length                  # what it sees: colour, shape, size, place, map and robot-relative position
+python3 tools/blocks_eval.py table1                    # compare with the true layout
+```
+
+Each block in `/blocks` has `colour`, `shape`, `size`, `dimensions_m`, `place`, `surface`, a position in the map frame (`x`, `y`, `z`), a position `relative` to the robot (`base_link`; x forward, y left, z up), and `features` and `shape_confident` for checking.
+
+Result of driving `deliver table1 table2 room1 room2` through Nav2 and checking every stop against the truth (simulation, one run):
+
+- All ten blocks were found at the right place, with no extra blocks. Colour and size were right for all of them; the shape was right for 9 of 10. The miss is the small 4 cm cube, which is read as a cylinder (its top face is only a few depth pixels from about 2 m away; `shape_confident` is false for borderline cases like this).
+- The positions are accurate to under 1 cm relative to each other. In the map frame every block at a place is shifted together by 7 to 20 cm, which is the robot's localization error (AMCL), not the detector: with the robot placed at an exact pose the error was under 1.3 cm. For reaching a block, use the `relative` position, which does not depend on localization.
+
+Limits and things to know:
+
+- Nav2's `yaw_goal_tolerance` is wide, so the robot stops within 25 cm of a place facing any direction. The places with `align: true` in `locations.yaml` make `deliver` turn the robot to face the table or rack after arriving; without it the camera usually looks the wrong way.
+- The simulated camera sometimes delivers blank frames under load. The detector skips them, and publishes a list only after three frames in a row agree, so the list is stable but takes a second or two after a stop.
+- Small blocks (about 4 to 5 cm) seen from 2 m are hard to classify. A closer view, such as an arm's own camera, will do better.
+- Only the table tops and the two lower rack shelves are checked (the top shelf is above the camera). It sees the places it is facing, so it does not keep a memory of the rest of the warehouse.
+- The camera mast is a visual stand-in; it will be replaced when the arm is added.
+
 ### Clicking several stops in RViz
 
 Pick the **Publish Point** tool once and click stops on the map. Numbered markers appear. Press **Go** in the Route window to drive them in order. **Undo**, **Clear** and **Cancel** are in the same window.
@@ -175,7 +212,8 @@ Manual mapping works with `teleop:=true`; save the result with `nav2_map_server`
 
 ## Roadmap
 
-- Object detection beyond the cargo box (people, doors, obstacles)
+- Pick and place with an arm (the block detector already gives positions relative to the robot)
+- Object detection beyond the blocks (people, doors, obstacles)
 - Order queue, battery and docking
 - Automatic slowing near doorways
 - Automated launch tests

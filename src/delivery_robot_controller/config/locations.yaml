@@ -6,11 +6,28 @@ locations:
     x: 0.0
     y: 0.0
     yaw: 0.0
+  # room1 and room2 face the rack in each room, table1 and table2 face the
+  # table from a corner so the chairs do not block the camera. The perception
+  # camera sees the blocks from these poses. align: true makes the robot turn
+  # on the spot to face yaw after arriving, because Nav2 ignores the final
+  # heading.
   room1:
-    x: -4.3
-    y: 3.0
-    yaw: 0.0
+    x: -4.6
+    y: 3.2
+    yaw: 1.5708
+    align: true
   room2:
-    x: 4.3
-    y: -3.0
-    yaw: 0.0
+    x: 4.6
+    y: -3.2
+    yaw: -1.5708
+    align: true
+  table1:
+    x: 1.7
+    y: 0.9
+    yaw: 0.745
+    align: true
+  table2:
+    x: -1.7
+    y: -0.9
+    yaw: -2.396
+    align: true
