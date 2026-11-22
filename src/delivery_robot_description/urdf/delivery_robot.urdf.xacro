@@ -322,21 +322,52 @@
   <preserveFixedJoint>true</preserveFixedJoint>
 </gazebo>
 
-<!-- Deck camera on a post above the front camera, looking back and down at
-     the cargo deck. It sits above the lidar plane and behind the front camera. -->
-<link name="deck_camera_mount">
-  <visual name="deck_camera_post">
-    <geometry><cylinder radius="0.008" length="0.07"/></geometry>
+<!-- Sensor mast behind the lidar. It is a solid column from the deck up to a
+     sensor head that carries the perception camera. The whole footprint lies
+     within 0.12 m of the lidar axis, the lidar's blind radius (nearer than
+     its minimum range is not rendered), so the column does not show up in
+     the scan even though it crosses the lidar plane. The front camera sits
+     just in front of it. -->
+<link name="sensor_mast">
+  <visual name="mast_column">
+    <geometry><box size="0.05 0.08 1.07"/></geometry>
+    <material name="body_white"/>
+  </visual>
+  <visual name="mast_band">
+    <origin xyz="0 0 -0.255"/>
+    <geometry><box size="0.052 0.082 0.035"/></geometry>
+    <material name="body_teal"/>
+  </visual>
+  <visual name="mast_collar">
+    <origin xyz="0 0 -0.515"/>
+    <geometry><box size="0.066 0.09 0.04"/></geometry>
     <material name="chassis_dark"/>
+  </visual>
+  <visual name="mast_head">
+    <origin xyz="0.01 0 0.595"/>
+    <geometry><box size="0.11 0.20 0.08"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+  <visual name="mast_head_cap">
+    <origin xyz="0.01 0 0.6425"/>
+    <geometry><box size="0.10 0.18 0.015"/></geometry>
+    <material name="body_teal"/>
+  </visual>
+  <visual name="mast_window">
+    <origin xyz="0.061 0 0.595"/>
+    <geometry><box size="0.004 0.14 0.04"/></geometry>
+    <material name="lens_black"/>
   </visual>
 </link>
 
-<joint name="deck_camera_mount_joint" type="fixed">
+<joint name="sensor_mast_joint" type="fixed">
   <parent link="base_link"/>
-  <child link="deck_camera_mount"/>
-  <origin xyz="0.15 0 0.565" rpy="0 0 0"/>
+  <child link="sensor_mast"/>
+  <origin xyz="0.085 0 0.855" rpy="0 0 0"/>
 </joint>
 
+<!-- Deck camera on the rear face of the mast, looking back and down at the
+     cargo deck. -->
 <link name="deck_camera_link">
   <visual name="deck_camera_body">
     <geometry><box size="0.03 0.04 0.025"/></geometry>
@@ -345,33 +376,14 @@
 </link>
 
 <joint name="deck_camera_joint" type="fixed">
-  <parent link="deck_camera_mount"/>
-  <child link="deck_camera_link"/>
-  <origin xyz="0 0 0.04" rpy="0 0.84 3.14159"/>
-</joint>
-
-<!-- Perception camera at the top of the mast, high enough to look down onto
-     table tops and rack shelves. The mast is above the lidar
-     plane and behind the front camera, so neither sensor sees it. -->
-<link name="perception_mast">
-  <visual name="perception_mast_pole">
-    <geometry><cylinder radius="0.008" length="0.85"/></geometry>
-    <material name="chassis_dark"/>
-  </visual>
-</link>
-
-<joint name="perception_mast_joint" type="fixed">
   <parent link="base_link"/>
-  <child link="perception_mast"/>
-  <origin xyz="0.15 0 1.025" rpy="0 0 0"/>
+  <child link="deck_camera_link"/>
+  <origin xyz="0.045 0 0.78" rpy="0 1.2 3.14159"/>
 </joint>
 
-<link name="perception_camera_link">
-  <visual name="perception_camera_body">
-    <geometry><box size="0.05 0.06 0.04"/></geometry>
-    <material name="chassis_dark"/>
-  </visual>
-</link>
+<!-- Perception camera in the head of the mast, high enough to look down onto
+     table tops and rack shelves. It looks straight ahead. -->
+<link name="perception_camera_link"/>
 
 <joint name="perception_camera_joint" type="fixed">
   <parent link="base_link"/>

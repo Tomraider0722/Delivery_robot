@@ -186,7 +186,7 @@ Limits and things to know:
 - The simulated camera sometimes delivers blank frames under load. The detector skips them, and publishes a list only after three frames in a row agree, so the list is stable but takes a second or two after a stop.
 - Small blocks (about 4 to 5 cm) seen from 2 m are hard to classify. A closer view, such as an arm's own camera, will do better.
 - Only the table tops and the two lower rack shelves are checked (the top shelf is above the camera). It sees the places it is facing, so it does not keep a memory of the rest of the warehouse.
-- The camera mast is a visual stand-in; it will be replaced when the arm is added.
+- The sensor mast is a column behind the lidar, with the perception camera in its head. It only exists because the camera has to look down onto table tops from above (they are 0.8 m high), and it will go when the arm is added. The column crosses the lidar plane but lies within the lidar's blind radius (0.12 m), so the lidar does not see it.
 
 ### Carrying a block from one place to another
 
