@@ -53,8 +53,8 @@ def load_locations(path):
 class Deliver(Node):
     """Send NavigateToPose goals for a delivery run."""
 
-    def __init__(self, **kwargs):
-        super().__init__('deliver', **kwargs)
+    def __init__(self, name='deliver', **kwargs):
+        super().__init__(name, **kwargs)
         self.client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.spin_client = ActionClient(self, Spin, 'spin')
         self.tf_buffer = Buffer()

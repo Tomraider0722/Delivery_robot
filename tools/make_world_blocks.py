@@ -4,6 +4,9 @@ Adds a marked section to the warehouse world files (safe to run again) and
 writes the ground-truth list the detector is tested against
 (src/delivery_robot_perception/config/blocks_truth.yaml).
 
+The blocks are hidden from the lidar (visibility flag 2, see the URDF), so a
+block carried on the deck does not show up in the scan.
+
 Surface heights: table tops at 0.80 m; each rack has shelves with tops at
 0.30 m (lower) and 0.95 m (middle). A block's pose is its centre.
 
@@ -91,6 +94,7 @@ def model(name, colour, shape, size, x, y, z):
         </collision>
         <visual name="visual">
           <geometry>{geom}</geometry>
+          <visibility_flags>2</visibility_flags>
           <material>
             <ambient>{r} {g} {b} 1</ambient>
             <diffuse>{r} {g} {b} 1</diffuse>

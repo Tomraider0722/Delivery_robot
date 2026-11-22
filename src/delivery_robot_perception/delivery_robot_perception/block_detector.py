@@ -22,6 +22,7 @@ rack first (for example: ros2 run delivery_robot_controller deliver table1).
     ros2 run delivery_robot_perception block_detector
 """
 
+from collections import Counter, deque
 import json
 import math
 import os
@@ -40,6 +41,7 @@ from rclpy.qos import (qos_profile_sensor_data, QoSDurabilityPolicy,
 from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
 from std_msgs.msg import ColorRGBA, String
+from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener
 from visualization_msgs.msg import Marker, MarkerArray
 import yaml
@@ -157,6 +159,10 @@ class BlockDetector(Node):
         self.info = None
         self.depth = None
         self.last_time = -1e9
+        self.refresh_count = 0
+        self.stats = {'frames': 0, 'blank': 0, 'skipped': 0, 'used': 0}
+        self.create_timer(10.0, self.log_stats)
+        self.tracks = []           # blocks seen recently, with shape votes
         self.pending = None        # signature seen in the latest frames
         self.pending_count = 0
         self.published = None      # signature of the list last published
@@ -168,6 +174,7 @@ class BlockDetector(Node):
         self.marker_pub = self.create_publisher(
             MarkerArray, '/blocks/markers', 1)
         self.debug_pub = self.create_publisher(Image, '/blocks/debug_image', 1)
+        self.create_service(Trigger, '/blocks/refresh', self.on_refresh)
         self.create_subscription(
             CameraInfo, '/perception_camera/camera_info', self.on_info,
             qos_profile_sensor_data)
@@ -179,6 +186,34 @@ class BlockDetector(Node):
             qos_profile_sensor_data)
 
     # ---- inputs --------------------------------------------------------
+
+    def log_stats(self):
+        """Log how many camera frames were used or skipped (every 10 s)."""
+        st = self.stats
+        if st['frames']:
+            self.get_logger().info(
+                f"Last 10 s: {st['frames']} colour frames, {st['used']} "
+                f"used, {st['blank']} blank depth, {st['skipped']} skipped "
+                '(no depth, late, no transform)')
+        for key in st:
+            st[key] = 0
+
+    def on_refresh(self, request, response):
+        """Publish the next list that three fresh frames agree on.
+
+        The list is normally only published when it changes. After a block
+        has been moved, a task calls this to get a new list that is based
+        on frames taken from now on, even if it looks the same. The response
+        message is a number; lists published after this call carry it (or a
+        larger one) in their "refresh" field, so a caller can tell them from
+        lists that were already on their way.
+        """
+        self.pending, self.pending_count, self.published = None, 0, None
+        self.refresh_count += 1
+        response.success = True
+        # Lists published from now on carry this number in "refresh".
+        response.message = str(self.refresh_count)
+        return response
 
     def on_info(self, msg):
         """Camera intrinsics (fx, fy, cx, cy)."""
@@ -195,6 +230,7 @@ class BlockDetector(Node):
         if self.info is None or self.depth is None \
                 or now - self.last_time < self.min_period:
             return
+        self.stats['frames'] += 1
         stamp_d, depth = self.depth
         gap = abs(Time.from_msg(stamp_d).nanoseconds
                   - Time.from_msg(msg.header.stamp).nanoseconds) / 1e9
@@ -202,6 +238,7 @@ class BlockDetector(Node):
             self.get_logger().warn(
                 f'Colour and depth images are {gap:.2f} s apart, skipping',
                 throttle_duration_sec=5.0)
+            self.stats['skipped'] += 1
             return
         # The 3D points come from the depth image, so use the camera pose at
         # the depth image's time (fall back to the newest pose).
@@ -218,19 +255,49 @@ class BlockDetector(Node):
             self.get_logger().warn(
                 f'No transform {self.target} <- {msg.header.frame_id}: '
                 f'{last_error}', throttle_duration_sec=5.0)
+            self.stats['skipped'] += 1
             return
         self.last_time = now
         rgb = np.frombuffer(bytes(msg.data), np.uint8).reshape(
             msg.height, msg.width, 3)
         blocks, labelled = self.detect(rgb, depth, tf)
         if blocks is None:
+            self.stats['blank'] += 1
             return
+        self.stats['used'] += 1
+        self.smooth(blocks, now)
         base = self.lookup_base(Time.from_msg(stamp_d))
         if base is not None:
             self.add_relative(blocks, base)
         self.publish(blocks, labelled, msg.header)
 
     # ---- detection -----------------------------------------------------
+
+    def smooth(self, blocks, now):
+        """Report each block's most common shape and size of the last frames.
+
+        A block whose top face is borderline (a small cube or cylinder) can
+        change shape from frame to frame. Without this the list would never
+        be the same for several frames in a row.
+        """
+        for b in blocks:
+            track = next(
+                (t for t in self.tracks
+                 if t['colour'] == b['colour'] and t['place'] == b['place']
+                 and math.hypot(t['x'] - b['x'], t['y'] - b['y']) < 0.08),
+                None)
+            if track is None:
+                track = {'colour': b['colour'], 'place': b['place'],
+                         'votes': deque(maxlen=9)}
+                self.tracks.append(track)
+            track.update(x=b['x'], y=b['y'], seen=now)
+            track['votes'].append((b['shape'], b['size']))
+            (shape, size), count = Counter(track['votes']).most_common(1)[0]
+            b['shape'], b['size'] = shape, size
+            b['id'] = f"{b['colour']}_{shape}_{size}"
+            share = count / len(track['votes'])
+            b['shape_confident'] = bool(b['shape_confident'] and share >= 0.75)
+        self.tracks = [t for t in self.tracks if now - t['seen'] < 5.0]
 
     def lookup_base(self, when):
         """Pose of base_link in the target frame (rotation, translation)."""
@@ -408,7 +475,8 @@ class BlockDetector(Node):
                 and not self.same_list(signature, self.published)):
             self.published = signature
             self.blocks_pub.publish(String(data=json.dumps(
-                {'frame': self.target, 'blocks': public})))
+                {'frame': self.target, 'refresh': self.refresh_count,
+                 'blocks': public})))
             names = ', '.join(
                 f"{b['id']}@{b['place']}" for b in public) or 'none'
             self.get_logger().info(f'Blocks in view: {names}')

@@ -141,6 +141,21 @@ def generate_launch_description():
                     launch_arguments={
                         'speed_slider': speed_slider}.items(),
                     condition=IfCondition(rviz)),
+                # The detectors start with RViz, after Nav2 is up: processing
+                # the camera images while Nav2 starts made its lifecycle
+                # bring-up time out.
+                Node(
+                    package='delivery_robot_perception',
+                    executable='cargo_detector',
+                    name='cargo_detector',
+                    output='log',
+                    condition=IfCondition(LaunchConfiguration('perception'))),
+                Node(
+                    package='delivery_robot_perception',
+                    executable='block_detector',
+                    name='block_detector',
+                    output='log',
+                    condition=IfCondition(LaunchConfiguration('perception'))),
                 Node(
                     package='delivery_robot_controller',
                     executable='delivery_panel',
@@ -159,18 +174,6 @@ def generate_launch_description():
         *[UnsetEnvironmentVariable(name) for name in SNAP_ENV_VARS],
         simulation,
         teleop_launch,
-        Node(
-            package='delivery_robot_perception',
-            executable='cargo_detector',
-            name='cargo_detector',
-            output='log',
-            condition=IfCondition(LaunchConfiguration('perception'))),
-        Node(
-            package='delivery_robot_perception',
-            executable='block_detector',
-            name='block_detector',
-            output='log',
-            condition=IfCondition(LaunchConfiguration('perception'))),
         wait_sim,
         start_localization,
         start_navigation,

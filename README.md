@@ -162,7 +162,7 @@ Blocks of different shapes and sizes stand on the table tops and on the lower an
 | `room1` rack | cyan cube (medium, lower shelf), magenta bar (large, middle shelf) |
 | `room2` rack | blue cylinder (medium, lower shelf), orange bar (large, middle shelf) |
 
-The robot has an RGB-D perception camera at the top of its mast (about 1.5 m high, looking forward and down, so it can see table tops and shelves; the front camera is too low for that). `block_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) turns every depth pixel into a 3D point in the map frame, keeps the points that stand just above a known surface (`config/places.yaml`), groups them into blocks, and takes the colour from the image and the shape and size from the top face. It publishes `/blocks` (JSON, latched), `/blocks/markers` (RViz) and `/blocks/debug_image`.
+The robot has a perception camera (colour and depth) at the top of its mast, about 1.5 m high and looking straight ahead, so it can see down onto table tops and shelves; the front camera is too low for that. It is level on purpose: in Gazebo here the depth camera returned empty frames at many headings whenever it was tilted down, with either the combined RGB-D sensor or a separate depth sensor, and it is reliable when level. It has a wide, square image (960 x 960, 1.5 rad). `block_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) turns every depth pixel into a 3D point in the map frame, keeps the points that stand just above a known surface (`config/places.yaml`), groups them into blocks, and takes the colour from the image and the shape and size from the top face. It publishes `/blocks` (JSON, latched), `/blocks/markers` (RViz) and `/blocks/debug_image`.
 
 ![Block detection](docs/block_detection.jpg)
 
@@ -176,16 +176,31 @@ Each block in `/blocks` has `colour`, `shape`, `size`, `dimensions_m`, `place`, 
 
 Result of driving `deliver table1 table2 room1 room2` through Nav2 and checking every stop against the truth (simulation, one run):
 
-- All ten blocks were found at the right place, with no extra blocks. Colour and size were right for all of them; the shape was right for 9 of 10. The miss is the small 4 cm cube, which is read as a cylinder (its top face is only a few depth pixels from about 2 m away; `shape_confident` is false for borderline cases like this).
-- The positions are accurate to under 1 cm relative to each other. In the map frame every block at a place is shifted together by 7 to 20 cm, which is the robot's localization error (AMCL), not the detector: with the robot placed at an exact pose the error was under 1.3 cm. For reaching a block, use the `relative` position, which does not depend on localization.
+- All ten blocks were found at the right place, with no extra blocks. Colour and size were right for almost all of them; the shape was right for 9 of 10. The miss is one of the two small blocks (in the last run the 4 cm blue cube, read as a cylinder; in another run the 4.4 cm purple cylinder, read as a cube), whose top face is only a few depth pixels from about 2 m away; `shape_confident` is false for both of them.
+- The positions are accurate to under 1 cm relative to each other. In the map frame every block at a place is shifted together by 6 to 13 cm in the last run, which is the robot's localization error (AMCL), not the detector (after removing that shared shift the blocks of a place are 0.2 to 0.9 cm from the truth): with the robot placed at an exact pose the error was under 1.3 cm. For reaching a block, use the `relative` position, which does not depend on localization.
 
 Limits and things to know:
 
+- The racks' lower shelf is only visible from 1.5 m or more away (the camera is level), so `room1` and `room2` are stops in the middle of the room facing the rack, not close to it.
 - Nav2's `yaw_goal_tolerance` is wide, so the robot stops within 25 cm of a place facing any direction. The places with `align: true` in `locations.yaml` make `deliver` turn the robot to face the table or rack after arriving; without it the camera usually looks the wrong way.
 - The simulated camera sometimes delivers blank frames under load. The detector skips them, and publishes a list only after three frames in a row agree, so the list is stable but takes a second or two after a stop.
 - Small blocks (about 4 to 5 cm) seen from 2 m are hard to classify. A closer view, such as an arm's own camera, will do better.
 - Only the table tops and the two lower rack shelves are checked (the top shelf is above the camera). It sees the places it is facing, so it does not keep a memory of the rest of the warehouse.
 - The camera mast is a visual stand-in; it will be replaced when the arm is added.
+
+### Carrying a block from one place to another
+
+```bash
+ros2 run delivery_robot_controller transport red_cube table1 room1
+ros2 run delivery_robot_controller transport magenta_bar room1 table2
+ros2 run delivery_robot_controller transport blue_cylinder room2 table1 --shelf lower   # --shelf lower|middle picks the rack shelf
+```
+
+The block is named by colour and shape (`red_cube`, `blue_cylinder`, `yellow_bar`; add the size to be exact, such as `blue_cube_small`). Steps: drive to the source and look, check the block is there, pick it, check it is no longer there, drive to the destination, look for a free spot in view, place the block, check with the camera that it is there, return to the dock. Every check uses a fresh list from the block detector (`/blocks/refresh`).
+
+**The pick and the place are a simulation shortcut.** There is no arm yet: `delivery_robot_perception/sim_arm.py` moves the block's model in Gazebo (it appears on the deck, or on the chosen spot). It is used like an arm would be used: from the block's position relative to the robot and the robot's true pose. When an arm is added, the `pick` and `place` functions there are what it replaces; the finding, checking and driving stay the same.
+
+Tested in simulation (one run): red cube from `table1` to the lower shelf of `room1`, then magenta bar from `room1` to `table2`. Both finished with the camera confirming the block at the destination (0.4 cm and 5.7 cm from where it was put). In the second task the camera read the bar's size as small, because the spot is near the table's far corner, partly behind a chair.
 
 ### Clicking several stops in RViz
 

@@ -3,6 +3,7 @@
 # its bottom at the surface height z. Table tops are at 0.80 m, the rack
 # shelves (tops) at 0.30 m (lower) and 0.95 m (middle). The rack ranges stop
 # at the inner faces of the posts so the posts are not taken for blocks.
+
 places:
   table1:
     table top: {x: [2.25, 3.75], y: [1.70, 2.50], z: 0.80}
