@@ -3,6 +3,10 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"
        name="delivery_robot">
 
+    <!-- manipulator:=true adds the prototype lift, reach and gripper (off by
+         default, it does not change anything else) -->
+    <xacro:arg name="manipulator" default="false"/>
+
     <!-- Colours (visual only) -->
     <material name="body_white"><color rgba="0.92 0.93 0.95 1.0"/></material>
     <material name="body_teal"><color rgba="0.05 0.45 0.55 1.0"/></material>
@@ -619,5 +623,164 @@
   </sensor>
 
 </gazebo>
+
+
+    <xacro:if value="$(arg manipulator)">
+
+<!-- ================= Prototype manipulator with lift, reach and gripper =================
+     Three kinds of sliding joint and no rotating joint. The lift carriage slides
+     up and down the mast column (so the column is the lift rail), the reach arm
+     slides forward from the carriage, and the two gripper fingers slide
+     towards each other. The arm is on the left of the column so it does not
+     pass through it. Visual only for now (no collision), driven by position
+     controllers, commanded with gz topic, see the README. -->
+
+<link name="lift_carriage">
+  <inertial>
+    <mass value="0.3"/>
+    <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+  </inertial>
+  <visual name="carriage_body">
+    <origin xyz="0 0 0"/>
+    <geometry><box size="0.07 0.15 0.10"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+  <visual name="carriage_band">
+    <origin xyz="0 0 0.03"/>
+    <geometry><box size="0.072 0.152 0.02"/></geometry>
+    <material name="body_teal"/>
+  </visual>
+</link>
+
+<joint name="lift_joint" type="prismatic">
+  <parent link="base_link"/>
+  <child link="lift_carriage"/>
+  <origin xyz="0.085 0 0.37" rpy="0 0 0"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="0" upper="0.75" effort="200" velocity="0.3"/>
+  <dynamics damping="5.0" friction="1.0"/>
+</joint>
+
+<link name="reach_arm">
+  <inertial>
+    <mass value="0.2"/>
+    <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+  </inertial>
+  <visual name="arm_bar">
+    <origin xyz="0 0 0"/>
+    <geometry><box size="0.50 0.035 0.03"/></geometry>
+    <material name="body_white"/>
+  </visual>
+  <visual name="arm_end">
+    <origin xyz="0.26 0 0"/>
+    <geometry><box size="0.06 0.12 0.035"/></geometry>
+    <material name="chassis_dark"/>
+  </visual>
+  <visual name="arm_stripe">
+    <origin xyz="0 0 0.012"/>
+    <geometry><box size="0.50 0.037 0.008"/></geometry>
+    <material name="body_teal"/>
+  </visual>
+</link>
+
+<joint name="reach_joint" type="prismatic">
+  <parent link="lift_carriage"/>
+  <child link="reach_arm"/>
+  <origin xyz="0.05 0.115 0" rpy="0 0 0"/>
+  <axis xyz="1 0 0"/>
+  <limit lower="0" upper="0.50" effort="100" velocity="0.3"/>
+  <dynamics damping="5.0" friction="1.0"/>
+</joint>
+
+<link name="finger_left">
+  <inertial>
+    <mass value="0.03"/>
+    <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+  </inertial>
+  <visual name="finger_left_body">
+    <origin xyz="0 0 0"/>
+    <geometry><box size="0.014 0.012 0.09"/></geometry>
+    <material name="lens_black"/>
+  </visual>
+</link>
+
+<joint name="finger_left_joint" type="prismatic">
+  <parent link="reach_arm"/>
+  <child link="finger_left"/>
+  <origin xyz="0.26 0.045 -0.06" rpy="0 0 0"/>
+  <axis xyz="0 -1 0"/>
+  <limit lower="0" upper="0.035" effort="20" velocity="0.1"/>
+  <dynamics damping="2.0" friction="0.5"/>
+</joint>
+
+<link name="finger_right">
+  <inertial>
+    <mass value="0.03"/>
+    <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+  </inertial>
+  <visual name="finger_right_body">
+    <origin xyz="0 0 0"/>
+    <geometry><box size="0.014 0.012 0.09"/></geometry>
+    <material name="lens_black"/>
+  </visual>
+</link>
+
+<joint name="finger_right_joint" type="prismatic">
+  <parent link="reach_arm"/>
+  <child link="finger_right"/>
+  <origin xyz="0.26 -0.045 -0.06" rpy="0 0 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="0" upper="0.035" effort="20" velocity="0.1"/>
+  <dynamics damping="2.0" friction="0.5"/>
+</joint>
+
+<gazebo>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>lift_joint</joint_name>
+    <topic>/manip/lift</topic>
+    <p_gain>600</p_gain>
+    <i_gain>20</i_gain>
+    <d_gain>80</d_gain>
+    <i_max>1</i_max>
+    <i_min>-1</i_min>
+    <cmd_max>1000</cmd_max>
+    <cmd_min>-1000</cmd_min>
+  </plugin>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>reach_joint</joint_name>
+    <topic>/manip/reach</topic>
+    <p_gain>400</p_gain>
+    <i_gain>10</i_gain>
+    <d_gain>60</d_gain>
+    <i_max>1</i_max>
+    <i_min>-1</i_min>
+    <cmd_max>1000</cmd_max>
+    <cmd_min>-1000</cmd_min>
+  </plugin>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>finger_left_joint</joint_name>
+    <topic>/manip/gripper</topic>
+    <p_gain>200</p_gain>
+    <i_gain>1</i_gain>
+    <d_gain>20</d_gain>
+    <i_max>1</i_max>
+    <i_min>-1</i_min>
+    <cmd_max>1000</cmd_max>
+    <cmd_min>-1000</cmd_min>
+  </plugin>
+  <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <joint_name>finger_right_joint</joint_name>
+    <topic>/manip/gripper</topic>
+    <p_gain>200</p_gain>
+    <i_gain>1</i_gain>
+    <d_gain>20</d_gain>
+    <i_max>1</i_max>
+    <i_min>-1</i_min>
+    <cmd_max>1000</cmd_max>
+    <cmd_min>-1000</cmd_min>
+  </plugin>
+</gazebo>
+
+    </xacro:if>
 
 </robot>

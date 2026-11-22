@@ -28,6 +28,29 @@ Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; downlo
 - **Operator tools**: a Delivery button window, a speed-limit slider, and a route tool to click several stops in RViz.
 - **One-command bringup** that starts the whole system in order and waits for each stage to be ready.
 
+## Prototype lift, reach and gripper
+
+A prototype of a simple manipulator made only of sliding joints: no rotating joints, so no arm planning. It is off by default.
+
+![Lift and reach prototype](docs/manipulator_prototype.jpg)
+
+Top row: seen from the front left; bottom row: from the side. Poses from left to right: home, low, table height, middle-shelf height.
+
+![Gripper open and closed](docs/gripper_open_closed.jpg)
+
+- **Lift:** a carriage slides up and down the mast column (0 to 0.75 m), so the column is the lift rail.
+- **Reach:** an arm slides forward from the carriage (0 to 0.50 m). It is on the left of the column so it does not pass through it.
+- **Gripper:** two fingers slide towards each other (0 to 3.5 cm each), pointing down.
+
+```bash
+ros2 launch delivery_robot_gazebo gazebo.launch.py manipulator:=true
+gz topic -t /manip/lift    -m gz.msgs.Double -p 'data: 0.55'    # metres
+gz topic -t /manip/reach   -m gz.msgs.Double -p 'data: 0.40'    # metres
+gz topic -t /manip/gripper -m gz.msgs.Double -p 'data: 0.035'   # metres each finger, 0 = open
+```
+
+Limits of the prototype: it is visual only (no collision, it cannot grip anything yet) and the joints are driven by Gazebo position controllers, not ROS controllers, so ROS does not know their positions (RViz and the TF tree show them at zero). With the arm low and extended it crosses the lidar plane and shows up as an obstacle about 0.65 m ahead; raised above the lidar it is not seen. The fingertips reach the lower rack shelf at lift 0 and the middle shelf at about lift 0.6. The arm is on the left, so the robot has to stop about 11 cm to the right of the target.
+
 ## Maps
 
 The warehouse map built by the automatic exploration node (235 x 195 cells, about 11.8 x 9.8 m):

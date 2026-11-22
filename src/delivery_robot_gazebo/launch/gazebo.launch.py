@@ -21,6 +21,9 @@ def generate_launch_description():
     )
     # world:=delivery_warehouse_vslam.world is the feature-rich test world
     # used for the visual SLAM experiments
+    manipulator_arg = DeclareLaunchArgument(
+        'manipulator', default_value='false',
+        description='true adds the prototype lift, reach and gripper')
     world_arg = DeclareLaunchArgument(
         'world', default_value='delivery_warehouse.world',
         description='World file in delivery_robot_gazebo/worlds')
@@ -39,7 +42,9 @@ def generate_launch_description():
         'xacro ',
         xacro_file,
         ' controllers_config:=',
-        controllers_file
+        controllers_file,
+        ' manipulator:=',
+        LaunchConfiguration('manipulator')
     ])
 
     robot_state_publisher = Node(
@@ -190,6 +195,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         world_arg,
+        manipulator_arg,
         robot_state_publisher,
         gazebo,
         spawn_robot,
