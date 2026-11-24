@@ -5,9 +5,10 @@ Usage:
     ros2 run delivery_robot_perception cargo_tool take
 
 `load` creates a red box on the deck of the robot, wherever the robot is
-(the loading person). `take` removes it from the world (the customer taking
-the parcel). The box is invisible to the lidar, so it does not appear in the
-scan or the maps. The cargo detector sees the change through the deck camera.
+(the person loading it). `take` removes it from the world (the person taking
+it off). The box is invisible to the lidar, so it does not appear in the scan
+or the maps. The robot notices the change through its load sensor (the deck
+contact sensor read by the load monitor).
 """
 
 import math
@@ -21,7 +22,7 @@ MODEL = 'cargo_box'
 
 # Cargo size and where it sits on the deck, relative to base_link (metres).
 SIZE = 0.14
-DECK_X = -0.10
+DECK_X = -0.06
 DECK_TOP_Z = 0.37    # 0.32 above base_link, which rests 0.05 above the floor
 
 # visibility_flags 2: the lidar mask (see the URDF) leaves this bit out.

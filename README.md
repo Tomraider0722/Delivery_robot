@@ -1,10 +1,21 @@
 # Delivery Robot: ROS 2 and Gazebo Simulation
 
-A 4-wheel skid-steer delivery robot that maps a simulated warehouse, localizes itself, navigates between rooms and carries out delivery missions. Everything runs in simulation (Gazebo) on ROS 2 Jazzy.
+A simple 4-wheel skid-steer delivery robot. Someone puts a finished object on its deck at the workspace, and it drives to the storage room; someone puts an object from the racks on it, and it brings it back to the workspace. It maps a simulated warehouse, localizes itself and navigates with Nav2. Everything runs in simulation (Gazebo) on ROS 2 Jazzy.
 
-| Front | Rear |
-|---|---|
-| ![Robot front](docs/robot_look_front.png) | ![Robot rear](docs/robot_look_rear.png) |
+| Front | Rear | With an object on the deck |
+|---|---|---|
+| ![Robot front](docs/robot_look_front.png) | ![Robot rear](docs/robot_look_rear.png) | ![Robot loaded](docs/robot_look_loaded.png) |
+
+## The robot
+
+| Part | Where (metres, from the robot's `base_link`) | What it does |
+|---|---|---|
+| Deck | top of the body, 0.34 x 0.36 m plate | Carries the object. It is also the **load sensor**: a contact sensor that tells the robot whether something is standing on it |
+| LiDAR | (0.15, 0, 0.335) | 360° scan, 10 Hz, range 0.12 to 12 m. Used by SLAM, AMCL and Nav2 |
+| RGB-D camera | (0.15, 0, 0.485), on a short post on top of the lidar | Looks forward, 640 x 480, 15 Hz. Used for the visual SLAM |
+| IMU | (0, 0, 0.15) | Gyro and accelerometer, 100 Hz. Nothing uses it yet |
+
+The body is 0.60 m long and 0.45 m wide. That is all: no mast, no arm, no other cameras.
 
 ## Demo
 
@@ -22,34 +33,11 @@ Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; downlo
 - **Odometry calibration** for the skid-steer base: `wheel_separation_multiplier: 1.28` corrects a ~28% yaw over-report caused by wheel slip, which otherwise makes SLAM drift and produce ghost maps.
 - **Visual SLAM** (RTAB-Map, RGB-D camera only) next to LiDAR SLAM, with a measured comparison against Gazebo ground truth.
 - **Multi-stop deliveries** (`deliver`): visit named places in order, wait for confirmation at each, skip unreachable stops, return to the dock.
-- **Block perception**: ten blocks of different colours, shapes (cube, bar, cylinder) and sizes sit on two tables and two racks. A camera on a mast finds them, names their colour, shape and size, and gives their position on the map and relative to the robot. The places are called `table1`, `table2`, `room1` and `room2`.
-- **Cargo perception**: a deck camera and a colour-based detector (`cargo_detector`) tell whether the red cargo box is on the robot's deck. With `deliver --auto-confirm` (or the Delivery window's checkbox) a delivery confirms itself when the cargo is taken, instead of someone pressing Delivered.
+- **Courier** (`courier`): the robot waits at the workspace until its load sensor sees an object put on the deck, drives to the storage room, waits until the object is taken off, then (with `--bring-back`) waits for an object from the racks to be put on, brings it to the workspace and returns to the dock.
+- **Load sensor**: a contact sensor on the deck, read by `load_monitor`, publishes `/cargo_present`. `deliver --auto-confirm` uses it too.
 - **IMU**: a simulated IMU (`/imu`, 100 Hz, gyro and accelerometer with noise) is on the robot. Nothing uses it yet.
 - **Operator tools**: a Delivery button window, a speed-limit slider, and a route tool to click several stops in RViz.
 - **One-command bringup** that starts the whole system in order and waits for each stage to be ready.
-
-## Prototype lift, reach and gripper
-
-A prototype of a simple manipulator made only of sliding joints: no rotating joints, so no arm planning. It is off by default.
-
-![Lift and reach prototype](docs/manipulator_prototype.jpg)
-
-Top row: seen from the front left; bottom row: from the side. Poses from left to right: home, low, table height, middle-shelf height.
-
-![Gripper open and closed](docs/gripper_open_closed.jpg)
-
-- **Lift:** a carriage slides up and down the mast column (0 to 0.75 m), so the column is the lift rail.
-- **Reach:** an arm slides forward from the carriage (0 to 0.50 m). It is on the left of the column so it does not pass through it.
-- **Gripper:** two fingers slide towards each other (0 to 3.5 cm each), pointing down.
-
-```bash
-ros2 launch delivery_robot_gazebo gazebo.launch.py manipulator:=true
-gz topic -t /manip/lift    -m gz.msgs.Double -p 'data: 0.55'    # metres
-gz topic -t /manip/reach   -m gz.msgs.Double -p 'data: 0.40'    # metres
-gz topic -t /manip/gripper -m gz.msgs.Double -p 'data: 0.035'   # metres each finger, 0 = open
-```
-
-Limits of the prototype: it is visual only (no collision, it cannot grip anything yet) and the joints are driven by Gazebo position controllers, not ROS controllers, so ROS does not know their positions (RViz and the TF tree show them at zero). With the arm low and extended it crosses the lidar plane and shows up as an obstacle about 0.65 m ahead; raised above the lidar it is not seen. The fingertips reach the lower rack shelf at lift 0 and the middle shelf at about lift 0.6. The arm is on the left, so the robot has to stop about 11 cm to the right of the target.
 
 ## Maps
 
@@ -112,9 +100,9 @@ python3 tools/slam_compare_report.py run docs/slam_comparison
 | `delivery_robot_teleop` | Keyboard teleop and the `Twist` to `TwistStamped` converter |
 | `delivery_robot_navigation` | LiDAR and visual SLAM, localization, Nav2 config and launch files, RViz view, speed slider, route tool, saved map |
 | `delivery_robot_exploration` | `nav2_exploration` (frontier exploration with Nav2) and the older reactive `autonomous_exploration` |
-| `delivery_robot_controller` | `deliver` mission command, `delivery_panel` window, named locations |
+| `delivery_robot_controller` | `courier` (workspace and storage room jobs), `deliver` mission command, `delivery_panel` window, named locations |
 | `delivery_robot_bringup` | `bringup.launch.py`, the one-command launch |
-| `delivery_robot_perception` | `block_detector` (mast camera, finds the blocks on tables and racks), `cargo_detector` (deck camera, publishes `/cargo_present`) and `cargo_tool` (load or take the simulated cargo) |
+| `delivery_robot_perception` | `load_monitor` (deck load sensor to `/cargo_present`) and `cargo_tool` (puts an object on the deck or takes it off, simulation only) |
 
 ## Requirements
 
@@ -142,7 +130,7 @@ Start everything (Gazebo, localization on the saved map, Nav2, RViz, speed slide
 ros2 launch delivery_robot_bringup bringup.launch.py
 ```
 
-Useful arguments: `mode:=slam` (build a new map instead of using the saved one), `world:=delivery_warehouse_vslam.world` (feature-rich test world for visual SLAM), `rviz:=false`, `speed_slider:=false`, `route_control:=false`, `delivery_panel:=false`, `teleop:=true`.
+Useful arguments: `mode:=slam` (build a new map instead of using the saved one), `world:=delivery_warehouse_vslam.world` (feature-rich test world for visual SLAM), `rviz:=false`, `speed_slider:=false`, `route_control:=false`, `delivery_panel:=false`, `load_sensor:=false`, `teleop:=true`.
 
 ### Deliveries
 
@@ -156,74 +144,33 @@ Useful arguments: `mode:=slam` (build a new map instead of using the saved one),
 
   `--confirm` waits at each stop for Enter or the service `/delivery/confirm`; without it the robot waits `--wait N` seconds. Places are defined in `src/delivery_robot_controller/config/locations.yaml`.
 
-### Cargo detection
+### Courier: workspace and storage room
 
-The robot has a small camera on a post that looks down at its top deck. `cargo_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) finds the red cargo box by its colour and publishes `/cargo_present` (`std_msgs/Bool`, latched) and an annotated `/cargo/debug_image`.
-
-```bash
-ros2 run delivery_robot_perception cargo_tool load    # put the cargo on the deck (simulation: the person loading)
-ros2 run delivery_robot_perception cargo_tool take    # remove it (simulation: the customer taking it)
-ros2 run delivery_robot_controller deliver room1 room2 --auto-confirm
-```
-
-What the deck camera sees (`/cargo/debug_image`; the green box is the detection):
-
-![Cargo detection](docs/cargo_detection.png)
-
-With `--auto-confirm` the robot waits at each stop until the detector reports the cargo gone, then moves on; a stop where the deck is already empty is passed straight away. The Delivery window has Load cargo and Take cargo buttons, a "Cargo: on deck / empty" label and the automatic-confirmation checkbox; Delivered still works as a manual override. The cargo box is hidden from the lidar (a Gazebo visibility mask), so it does not appear in the scan or the maps.
-
-Limits: it detects a red object in the deck region of the image, not "the parcel" in general; it is tested in simulation only, in the default world with its red brick walls (the region of interest keeps them out).
-
-### Block perception
-
-Blocks of different shapes and sizes stand on the table tops and on the lower and middle shelf of the rack in each room. The layout is defined in `tools/make_world_blocks.py`, which also writes the ground-truth list `src/delivery_robot_perception/config/blocks_truth.yaml`:
-
-| Place | Blocks |
-|---|---|
-| `table1` | red cube (medium), blue cube (small), green cylinder (medium) |
-| `table2` | yellow bar (large), orange cube (medium), purple cylinder (small) |
-| `room1` rack | cyan cube (medium, lower shelf), magenta bar (large, middle shelf) |
-| `room2` rack | blue cylinder (medium, lower shelf), orange bar (large, middle shelf) |
-
-The robot has a perception camera (colour and depth) at the top of its mast, about 1.5 m high and looking straight ahead, so it can see down onto table tops and shelves; the front camera is too low for that. It is level on purpose: in Gazebo here the depth camera returned empty frames at many headings whenever it was tilted down, with either the combined RGB-D sensor or a separate depth sensor, and it is reliable when level. It has a wide, square image (960 x 960, 1.5 rad). `block_detector` (started by `bringup.launch.py`; `perception:=false` turns it off) turns every depth pixel into a 3D point in the map frame, keeps the points that stand just above a known surface (`config/places.yaml`), groups them into blocks, and takes the colour from the image and the shape and size from the top face. It publishes `/blocks` (JSON, latched), `/blocks/markers` (RViz) and `/blocks/debug_image`.
-
-![Block detection](docs/block_detection.jpg)
+The places are `table1` and `table2` (the workspaces) and `room1` and `room2` (the storage rooms with the racks).
 
 ```bash
-ros2 run delivery_robot_controller deliver table1      # drive to a place; the robot turns to face it (align: true in locations.yaml)
-ros2 topic echo /blocks --full-length                  # what it sees: colour, shape, size, place, map and robot-relative position
-python3 tools/blocks_eval.py table1                    # compare with the true layout
+ros2 run delivery_robot_controller courier table1 room1                # workspace to storage room
+ros2 run delivery_robot_controller courier table1 room1 --bring-back   # and back with an object from the racks
+ros2 run delivery_robot_controller courier table1 room1 --bring-back --sim-people   # simulation: a helper plays the people
 ```
 
-Each block in `/blocks` has `colour`, `shape`, `size`, `dimensions_m`, `place`, `surface`, a position in the map frame (`x`, `y`, `z`), a position `relative` to the robot (`base_link`; x forward, y left, z up), and `features` and `shape_confident` for checking.
+1. The robot drives to the workspace (`table1`) and waits there until an object is put on its deck.
+2. It drives to the storage room (`room1`) and waits until the object is taken off.
+3. With `--bring-back` it then waits until an object from the racks is put on, drives back to the workspace and waits until it is taken off.
+4. It returns to the dock.
 
-Result of driving `deliver table1 table2 room1 room2` through Nav2 and checking every stop against the truth (simulation, one run):
-
-- All ten blocks were found at the right place, with no extra blocks. Colour and size were right for almost all of them; the shape was right for 9 of 10. The miss is one of the two small blocks (in the last run the 4 cm blue cube, read as a cylinder; in another run the 4.4 cm purple cylinder, read as a cube), whose top face is only a few depth pixels from about 2 m away; `shape_confident` is false for both of them.
-- The positions are accurate to under 1 cm relative to each other. In the map frame every block at a place is shifted together by 6 to 13 cm in the last run, which is the robot's localization error (AMCL), not the detector (after removing that shared shift the blocks of a place are 0.2 to 0.9 cm from the truth): with the robot placed at an exact pose the error was under 1.3 cm. For reaching a block, use the `relative` position, which does not depend on localization.
-
-Limits and things to know:
-
-- The racks' lower shelf is only visible from 1.5 m or more away (the camera is level), so `room1` and `room2` are stops in the middle of the room facing the rack, not close to it.
-- Nav2's `yaw_goal_tolerance` is wide, so the robot stops within 25 cm of a place facing any direction. The places with `align: true` in `locations.yaml` make `deliver` turn the robot to face the table or rack after arriving; without it the camera usually looks the wrong way.
-- The simulated camera sometimes delivers blank frames under load. The detector skips them, and publishes a list only after three frames in a row agree, so the list is stable but takes a second or two after a stop.
-- Small blocks (about 4 to 5 cm) seen from 2 m are hard to classify. A closer view, such as an arm's own camera, will do better.
-- Only the table tops and the two lower rack shelves are checked (the top shelf is above the camera). It sees the places it is facing, so it does not keep a memory of the rest of the warehouse.
-- The sensor mast is a column behind the lidar, with the perception camera in its head. It only exists because the camera has to look down onto table tops from above (they are 0.8 m high), and it will go when the arm is added. The column crosses the lidar plane but lies within the lidar's blind radius (0.12 m), so the lidar does not see it.
-
-### Carrying a block from one place to another
+The robot knows about the object from its load sensor, so nobody has to press anything. In the simulation there are no people, so use one of these to play them: `--sim-people` (an object appears a few seconds after the robot arrives to be loaded, and disappears a few seconds after it arrives to be unloaded), or by hand with
 
 ```bash
-ros2 run delivery_robot_controller transport red_cube table1 room1
-ros2 run delivery_robot_controller transport magenta_bar room1 table2
-ros2 run delivery_robot_controller transport blue_cylinder room2 table1 --shelf lower   # --shelf lower|middle picks the rack shelf
+ros2 run delivery_robot_perception cargo_tool load   # put a red box on the deck
+ros2 run delivery_robot_perception cargo_tool take   # take it off
 ```
 
-The block is named by colour and shape (`red_cube`, `blue_cylinder`, `yellow_bar`; add the size to be exact, such as `blue_cube_small`). Steps: drive to the source and look, check the block is there, pick it, check it is no longer there, drive to the destination, look for a free spot in view, place the block, check with the camera that it is there, return to the dock. Every check uses a fresh list from the block detector (`/blocks/refresh`).
+or the Load cargo and Take cargo buttons of the Delivery window. The box is hidden from the lidar (a Gazebo visibility flag), so it does not appear in the scan or the maps. `--timeout` sets how long the robot waits for a person (default 10 minutes).
 
-**The pick and the place are a simulation shortcut.** There is no arm yet: `delivery_robot_perception/sim_arm.py` moves the block's model in Gazebo (it appears on the deck, or on the chosen spot). It is used like an arm would be used: from the block's position relative to the robot and the robot's true pose. When an arm is added, the `pick` and `place` functions there are what it replaces; the finding, checking and driving stay the same.
+Tested in simulation (one run, with `--sim-people`): `courier table1 room1 --bring-back` finished with every step completed, and the load sensor stayed steady while the robot drove.
 
-Tested in simulation (one run): red cube from `table1` to the lower shelf of `room1`, then magenta bar from `room1` to `table2`. Both finished with the camera confirming the block at the destination (0.4 cm and 5.7 cm from where it was put). In the second task the camera read the bar's size as small, because the spot is near the table's far corner, partly behind a chair.
+Limits: it carries one object at a time, it cannot tell objects apart or measure their weight (only that something is there), and the people are simulated. Nav2 ignores the final heading, so places marked `align: true` in `locations.yaml` make the robot turn on the spot to face them after arriving.
 
 ### Clicking several stops in RViz
 
@@ -250,9 +197,17 @@ Manual mapping works with `teleop:=true`; save the result with `nav2_map_server`
 
 ## Roadmap
 
-- Pick and place with an arm (the block detector already gives positions relative to the robot)
-- Object detection beyond the blocks (people, doors, obstacles)
+- Pick and place with an arm and a camera
+- Object detection (people, doors, obstacles)
 - Order queue, battery and docking
 - Automatic slowing near doorways
 - Automated launch tests
 - A real-robot version
+
+## Earlier versions in the git history
+
+The robot used to carry more, and the work is still in the history if it is needed again:
+
+- block detection with a camera on a mast, and a `transport` command with a simulated pick and place: commit `a20a845`
+- a tall sensor mast with a perception camera and a deck camera: commit `2cfd863`
+- a prototype lift, reach and gripper made of sliding joints: commit `dfef858`

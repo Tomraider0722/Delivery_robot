@@ -21,9 +21,6 @@ def generate_launch_description():
     )
     # world:=delivery_warehouse_vslam.world is the feature-rich test world
     # used for the visual SLAM experiments
-    manipulator_arg = DeclareLaunchArgument(
-        'manipulator', default_value='false',
-        description='true adds the prototype lift, reach and gripper')
     world_arg = DeclareLaunchArgument(
         'world', default_value='delivery_warehouse.world',
         description='World file in delivery_robot_gazebo/worlds')
@@ -42,9 +39,7 @@ def generate_launch_description():
         'xacro ',
         xacro_file,
         ' controllers_config:=',
-        controllers_file,
-        ' manipulator:=',
-        LaunchConfiguration('manipulator')
+        controllers_file
     ])
 
     robot_state_publisher = Node(
@@ -153,26 +148,13 @@ def generate_launch_description():
         output='screen'
     )
 
-    deck_camera_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        arguments=['/deck_camera@sensor_msgs/msg/Image[gz.msgs.Image'],
-        output='screen'
-    )
-
-    perception_camera_bridge = Node(
+    # Load sensor on the deck (contact sensor), read by the load_monitor node
+    contact_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/perception_camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
-            '/perception_camera/depth_image@sensor_msgs/msg/Image'
-            '[gz.msgs.Image',
-            '/perception_camera/camera_info@sensor_msgs/msg/CameraInfo'
-            '[gz.msgs.CameraInfo'
+            '/deck/contact@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts'
         ],
-        parameters=[{
-            'override_frame_id': 'perception_camera_optical_frame'
-        }],
         output='screen'
     )
 
@@ -195,7 +177,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         world_arg,
-        manipulator_arg,
         robot_state_publisher,
         gazebo,
         spawn_robot,
@@ -204,7 +185,6 @@ def generate_launch_description():
         clock_bridge,
         scan_bridge,
         imu_bridge,
-        deck_camera_bridge,
-        perception_camera_bridge,
+        contact_bridge,
         camera_bridge
     ])

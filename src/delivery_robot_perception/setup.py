@@ -10,14 +10,12 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/config',
-            ['config/places.yaml', 'config/blocks_truth.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='harish-lalam',
     maintainer_email='harishlalam227@gmail.com',
-    description='TODO: Package description',
+    description='Load sensing for the delivery robot',
     license='TODO: License declaration',
     extras_require={
         'test': [
@@ -27,8 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cargo_tool = delivery_robot_perception.cargo_tool:main',
-            'cargo_detector = delivery_robot_perception.cargo_detector:main',
-            'block_detector = delivery_robot_perception.block_detector:main',
+            'load_monitor = delivery_robot_perception.load_monitor:main',
         ],
     },
 )

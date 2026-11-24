@@ -1,8 +1,7 @@
 """Put blocks of different shapes, sizes and colours on the tables and racks.
 
-Adds a marked section to the warehouse world files (safe to run again) and
-writes the ground-truth list the detector is tested against
-(src/delivery_robot_perception/config/blocks_truth.yaml).
+Adds a marked section to the warehouse world files (safe to run again). The
+blocks are scenery now (the objects that are on the tables and racks).
 
 The blocks are hidden from the lidar (visibility flag 2, see the URDF), so a
 block carried on the deck does not show up in the scan.
@@ -13,15 +12,11 @@ Surface heights: table tops at 0.80 m; each rack has shelves with tops at
 Usage (from the workspace root):  python3 tools/make_world_blocks.py
 """
 
-import os
-
-import yaml
 
 WORLDS = [
     'src/delivery_robot_gazebo/worlds/delivery_warehouse.world',
     'src/delivery_robot_gazebo/worlds/delivery_warehouse_vslam.world',
 ]
-TRUTH = 'src/delivery_robot_perception/config/blocks_truth.yaml'
 BEGIN, END = '<!-- BLOCKS BEGIN -->', '<!-- BLOCKS END -->'
 
 COLOURS = {
@@ -106,20 +101,14 @@ def model(name, colour, shape, size, x, y, z):
 
 
 def main():
-    """Write the blocks into the worlds and the ground-truth file."""
-    models, truth = [], []
+    """Write the blocks into the worlds."""
+    models = []
     for place, colour, shape, size, x, y, surface in BLOCKS:
         name = f'block_{colour}_{shape}_{place}'
         height = dims(shape, size)[2]
         z = round(surface + height / 2.0 + 0.002, 4)
         models.append(model(name, colour, shape, size, x, y, z))
-        biggest = max(dims(shape, size))
-        truth.append({'name': name, 'place': place, 'colour': colour,
-                      'shape': 'cylinder' if shape == 'cylinder'
-                      else ('bar' if shape == 'bar' else 'cube'),
-                      'size': size_class(biggest),
-                      'x': x, 'y': y, 'z': z,
-                      'dimensions_m': [round(v, 3) for v in dims(shape, size)]})
+
     section = (f'    {BEGIN}\n    <!-- Blocks to carry (made by '
                'tools/make_world_blocks.py) -->\n' + ''.join(models)
                + f'    {END}\n')
@@ -137,11 +126,6 @@ def main():
         with open(path, 'w') as f:
             f.write(text)
         print('updated', path)
-
-    os.makedirs(os.path.dirname(TRUTH), exist_ok=True)
-    with open(TRUTH, 'w') as f:
-        yaml.safe_dump({'blocks': truth}, f, sort_keys=False)
-    print('wrote', TRUTH, len(truth), 'blocks')
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ setup(
         'console_scripts': [
             'deliver = delivery_robot_controller.deliver:main',
             'delivery_panel = delivery_robot_controller.delivery_panel:main',
-            'transport = delivery_robot_controller.transport:main',
+            'courier = delivery_robot_controller.courier:main',
         ],
     },
 )

@@ -11,8 +11,9 @@ Several destinations are visited in the order given. With --confirm the
 robot waits at each stop until someone presses Enter in this terminal or
 calls the service /delivery/confirm (std_srvs/Trigger), then moves on; it
 gives up waiting after --confirm-timeout seconds. With --auto-confirm the
-robot also confirms by itself when the cargo detector reports that the
-cargo was taken (needs ros2 run delivery_robot_perception cargo_detector). A stop that cannot be
+robot also confirms by itself when its load sensor reports that the
+object was taken off (needs ros2 run delivery_robot_perception load_monitor,
+which bringup.launch.py starts). A stop that cannot be
 reached is skipped and reported at the end.
 
 Needs the simulation, localization and Nav2 running (see CLAUDE.md).
@@ -63,8 +64,8 @@ class Deliver(Node):
         self.confirmed = False
         self.cancel_requested = False
         self.on_status = None
-        # With auto_confirm the robot waits for the cargo detector
-        # (/cargo_present) to say the cargo was taken. None = no detector yet.
+        # With auto_confirm the robot waits for the load sensor
+        # (/cargo_present) to say the object was taken. None = no reading yet.
         self.auto_confirm = False
         self.cargo_present = None
         self.create_service(Trigger, '/delivery/confirm', self.on_confirm)
@@ -84,7 +85,7 @@ class Deliver(Node):
         self.cancel_requested = True
 
     def on_cargo(self, msg):
-        """Latest cargo state from the detector."""
+        """Latest load state from the load monitor."""
         self.cargo_present = msg.data
 
     def on_confirm(self, request, response):
@@ -191,7 +192,7 @@ class Deliver(Node):
         auto = self.auto_confirm and self.cargo_present is not None
         if self.auto_confirm and not auto:
             self.get_logger().warn(
-                'No cargo detector running (/cargo_present); confirm by hand')
+                'No load sensor reading (/cargo_present); confirm by hand')
         if auto and not self.cargo_present:
             self.say('Deck is empty, nothing to hand over')
             return True
@@ -260,8 +261,8 @@ def main(args=None):
                         help='wait for Enter or /delivery/confirm at each '
                              'stop instead of a fixed time')
     parser.add_argument('--auto-confirm', action='store_true',
-                        help='confirm by itself when the cargo detector '
-                             '(cargo_detector) sees the cargo taken; '
+                        help='confirm by itself when the load sensor '
+                             '(load_monitor) sees the object taken off; '
                              'implies --confirm')
     parser.add_argument('--confirm-timeout', type=float, default=120.0,
                         help='seconds to wait for confirmation (default 120)')

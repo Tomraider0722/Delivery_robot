@@ -68,9 +68,8 @@ def generate_launch_description():
             'delivery_panel', default_value='true',
             description='Open the Deliver window (pick stops, press Deliver)'),
         DeclareLaunchArgument(
-            'perception', default_value='true',
-            description='Start the cargo detector (deck camera) and the block '
-                        'detector (perception camera)'),
+            'load_sensor', default_value='true',
+            description='Start the load monitor (is an object on the deck)'),
         DeclareLaunchArgument(
             'teleop', default_value='false',
             description='Also open the keyboard teleop terminal'),
@@ -141,21 +140,6 @@ def generate_launch_description():
                     launch_arguments={
                         'speed_slider': speed_slider}.items(),
                     condition=IfCondition(rviz)),
-                # The detectors start with RViz, after Nav2 is up: processing
-                # the camera images while Nav2 starts made its lifecycle
-                # bring-up time out.
-                Node(
-                    package='delivery_robot_perception',
-                    executable='cargo_detector',
-                    name='cargo_detector',
-                    output='log',
-                    condition=IfCondition(LaunchConfiguration('perception'))),
-                Node(
-                    package='delivery_robot_perception',
-                    executable='block_detector',
-                    name='block_detector',
-                    output='log',
-                    condition=IfCondition(LaunchConfiguration('perception'))),
                 Node(
                     package='delivery_robot_controller',
                     executable='delivery_panel',
@@ -174,6 +158,12 @@ def generate_launch_description():
         *[UnsetEnvironmentVariable(name) for name in SNAP_ENV_VARS],
         simulation,
         teleop_launch,
+        Node(
+            package='delivery_robot_perception',
+            executable='load_monitor',
+            name='load_monitor',
+            output='log',
+            condition=IfCondition(LaunchConfiguration('load_sensor'))),
         wait_sim,
         start_localization,
         start_navigation,

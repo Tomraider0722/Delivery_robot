@@ -5,7 +5,7 @@ robot drives to each one. At every stop press "Delivered" once the cargo
 has been taken and the robot moves on; at the end it returns to the dock.
 Cancel stops the robot and ends the mission.
 
-With the cargo detector running (delivery_robot_perception), the robot
+With the load monitor running (delivery_robot_perception), the robot
 confirms by itself when the cargo is taken from the deck, so "Delivered"
 is only needed as a manual override. "Load cargo" and "Take cargo" stand in
 for the person loading and the customer in the simulation.
@@ -179,7 +179,7 @@ class DeliveryPanel:
             rclpy.spin_once(self.node, timeout_sec=0.0)   # cargo state
         present = self.node.cargo_present
         self.cargo_label.config(text='Cargo: ' + (
-            'no detector' if present is None
+            'no sensor' if present is None
             else 'on deck' if present else 'empty'))
         text = ' -> '.join(self.queue) if self.queue else '(no stops yet)'
         self.queue_label.config(text='Stops: ' + text)
