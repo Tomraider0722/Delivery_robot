@@ -19,11 +19,11 @@ The body is 0.60 m long and 0.45 m wide. That is all: no mast, no arm, no other 
 
 ## Demo
 
-Overhead view of a full delivery in the simulated warehouse: dock, room 1, room 2, back to the dock (2x speed).
+Overhead view of a courier job, `courier table1 room1 --bring-back --sim-people`: the robot waits at the workspace (table 1) until an object is put on its deck, takes it to the storage room (room 1), waits until it is taken off, brings back an object from the racks and returns to the dock. The red box is the object; the people are simulated, so it appears on and disappears from the deck. The caption is the robot's own status message. About 7x speed (the job took about 2 minutes).
 
-![Delivery demo](docs/delivery_demo.gif)
+![Courier demo](docs/delivery_demo.gif)
 
-Full-size video: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; download it if your browser or player does not open it).
+Full-size video, about 3x speed: [docs/delivery_demo.mp4](docs/delivery_demo.mp4) (H.264; download it if your browser or player does not open it).
 
 ## Features
 
