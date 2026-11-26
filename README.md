@@ -19,7 +19,7 @@ The body is 0.60 m long and 0.45 m wide. That is all: no mast, no arm, no other 
 
 ## Demo
 
-Overhead view of a courier job, `courier table1 room1 --bring-back --sim-people`: the robot waits at the workspace (table 1) until an object is put on its deck, takes it to the storage room (room 1), waits until it is taken off, brings back an object from the racks and returns to the dock. The red box is the object; the people are simulated, so it appears on and disappears from the deck. The caption is the robot's own status message. About 7x speed (the job took about 2 minutes).
+Overhead view of a courier job, `courier table1 room1 --bring-back --sim-people`: the robot waits at the workspace (table 1) until an object is put on its deck, takes it to the storage room (room 1), waits until it is taken off, brings back an object from the racks and returns to the dock. The red box is the object. The four figures are people standing at the workspaces and in the storage rooms; they are scenery, so the object still just appears on and disappears from the deck. The caption is the robot's own status message. About 7x speed (the job took about 2 minutes).
 
 ![Courier demo](docs/delivery_demo.gif)
 
@@ -169,6 +169,8 @@ ros2 run delivery_robot_perception cargo_tool take   # take it off
 or the Load cargo and Take cargo buttons of the Delivery window. The box is hidden from the lidar (a Gazebo visibility flag), so it does not appear in the scan or the maps. `--timeout` sets how long the robot waits for a person (default 10 minutes).
 
 Tested in simulation (one run, with `--sim-people`): `courier table1 room1 --bring-back` finished with every step completed, and the load sensor stayed steady while the robot drove.
+
+People: four static figures stand beside the stops (one at each table and one in each storage room, made by `tools/make_world_people.py`). They are solid and the lidar sees their legs, so the robot drives around them, but they do not move or hand anything over.
 
 Limits: it carries one object at a time, it cannot tell objects apart or measure their weight (only that something is there), and the people are simulated. Nav2 ignores the final heading, so places marked `align: true` in `locations.yaml` make the robot turn on the spot to face them after arriving.
 
